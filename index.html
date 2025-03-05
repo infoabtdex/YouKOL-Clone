@@ -3,409 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Content Enhancer</title>
-    <!-- Tailwind and DaisyUI CDN -->
+    <title>ImaKOL - Capture and share your moments</title>
+    <!-- DaisyUI and Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Alpine.js CDN -->
-    <script defer src="https://unpkg.com/alpinejs@3.13.1/dist/cdn.min.js"></script>
+    <!-- Alpine JS -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.2/dist/cdn.min.js"></script>
     <style>
-        .media-preview {
-            max-height: 200px;
-            object-fit: contain;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
+        .gradient-btn {
+            background: linear-gradient(to right, #e56f64, #ee8176);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .app-container {
+            max-width: 100%;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .content-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .bottom-nav {
+            position: sticky;
+            bottom: 0;
+            background-color: white;
+            width: 100%;
+            padding: 0.75rem 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #f0f0f0;
+        }
+        .capture-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(to right, #e56f64, #ee8176);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .logo-text {
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+        .kol-text {
+            color: #e56f64;
+        }
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .preview-item {
+            aspect-ratio: 1/1;
+            background-size: cover;
+            background-position: center;
+            border-radius: 0.5rem;
+            position: relative;
+        }
+        .remove-btn {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.5rem;
+            background-color: white;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div x-data="app()" class="container mx-auto px-4 py-8">
-        <!-- App Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-primary">Content Enhancer</h1>
-            <p class="text-gray-600">Enhance and share your photos and videos</p>
-        </div>
-
-        <!-- Step Progress -->
-        <div class="w-full mb-8">
-            <ul class="steps steps-vertical md:steps-horizontal w-full">
-                <li class="step" :class="{'step-primary': step >= 1}">Upload</li>
-                <li class="step" :class="{'step-primary': step >= 2}">Enhance</li>
-                <li class="step" :class="{'step-primary': step >= 3}">Caption</li>
-                <li class="step" :class="{'step-primary': step >= 4}">Share</li>
-            </ul>
-        </div>
-
-        <!-- Upload Section -->
-        <div x-show="step === 1" class="fade-in">
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <h2 class="card-title">Upload Images or Videos</h2>
-                    <label class="form-control w-full">
-                        <div class="label">
-                            <span class="label-text">Choose files to upload</span>
-                        </div>
-                        <input 
-                            type="file" 
-                            class="file-input file-input-bordered file-input-primary w-full" 
-                            accept="image/*,video/*" 
-                            multiple
-                            @change="handleFileUpload($event)"
-                        />
-                        <div class="label">
-                            <span class="label-text-alt">Supported: JPG, PNG, GIF, MP4</span>
-                        </div>
+<body>
+    <div class="app-container" x-data="{
+        step: 'upload',
+        files: [],
+        caption: '',
+        processing: false,
+        previewFiles: [],
+        
+        handleFileUpload(event) {
+            const newFiles = Array.from(event.target.files);
+            this.previewFiles = [];
+            
+            newFiles.forEach(file => {
+                if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+                    this.files.push(file);
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.previewFiles.push({
+                            url: e.target.result,
+                            type: file.type.startsWith('image/') ? 'image' : 'video',
+                            file: file
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            if (this.files.length > 0) {
+                this.step = 'preview';
+            }
+        },
+        
+        removeFile(index) {
+            this.files.splice(index, 1);
+            this.previewFiles.splice(index, 1);
+            
+            if (this.files.length === 0) {
+                this.step = 'upload';
+            }
+        },
+        
+        async processFiles() {
+            this.processing = true;
+            this.step = 'processing';
+            
+            // Simulate processing delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            try {
+                // Generate caption using Grok 2 API
+                const apiKey = 'xai-bNdcB9vLeicNoDwv8obQhn71ZKP3p7W39oeEeDZFWmhzASEFnjdvVz6C1HYzQns20Ct7R1DeZRk70M1F';
+                
+                // Prepare the image data for API call
+                // For simplicity, we'll just use the first image in this example
+                if (this.previewFiles.length > 0 && this.previewFiles[0].type === 'image') {
+                    const imageUrl = this.previewFiles[0].url;
+                    const imageBase64 = imageUrl.split(',')[1];
+                    
+                    // Simulate API call
+                    // In a real scenario, you would make an actual API call to Grok
+                    console.log('Would call Grok API with key:', apiKey);
+                    
+                    // Simulate API response
+                    this.caption = 'Looking great! Just captured this amazing moment. #imakol #memories';
+                } else {
+                    this.caption = 'Check out my new post! #imakol #memories';
+                }
+                
+                this.step = 'share';
+            } catch (error) {
+                console.error('Error processing files:', error);
+                this.caption = 'Check out my new post! #imakol #memories';
+                this.step = 'share';
+            } finally {
+                this.processing = false;
+            }
+        },
+        
+        shareContent() {
+            // Check if Web Share API is supported
+            if (navigator.share) {
+                // Prepare share data
+                const shareData = {
+                    title: 'ImaKOL Post',
+                    text: this.caption,
+                };
+                
+                // If files are shareable, add them
+                if (this.files.length > 0 && navigator.canShare && navigator.canShare({ files: this.files })) {
+                    shareData.files = this.files;
+                }
+                
+                navigator.share(shareData)
+                    .then(() => console.log('Shared successfully'))
+                    .catch((error) => console.log('Error sharing:', error));
+            } else {
+                // Fallback for browsers that don't support Web Share API
+                alert('Sharing not supported on this browser. Caption: ' + this.caption);
+            }
+        },
+        
+        capturePhoto() {
+            // On click of camera, trigger file input
+            document.getElementById('fileInput').click();
+        }
+    }">
+        <!-- Logo and Header Area -->
+        <div class="content-area">
+            <div class="flex flex-col items-center justify-center mb-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-red-400 to-red-300 mr-2"></div>
+                    <div class="logo-text">Ima<span class="kol-text">KOL</span></div>
+                </div>
+                <p class="text-gray-600 text-lg mt-2">Capture and share your moments</p>
+            </div>
+            
+            <!-- Upload Step -->
+            <div x-show="step === 'upload'" class="w-full flex flex-col items-center" style="transition: all 0.3s ease;">
+                <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" multiple @change="handleFileUpload" />
+                
+                <div class="flex justify-center gap-4 w-full mt-8">
+                    <button @click="capturePhoto()" class="gradient-btn text-white py-3 px-8 rounded-full flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Capture
+                    </button>
+                    
+                    <label for="fileInput" class="border-2 border-gray-300 text-gray-700 py-3 px-8 rounded-full flex items-center cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+                        </svg>
+                        Upload
                     </label>
-
-                    <!-- Preview Area -->
-                    <div class="mt-4">
-                        <div x-show="files.length > 0" class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-                            <template x-for="(file, index) in files" :key="index">
-                                <div class="relative border rounded-lg p-2 bg-gray-50">
-                                    <template x-if="file.type.includes('image')">
-                                        <img :src="file.preview" class="media-preview mx-auto rounded" />
-                                    </template>
-                                    <template x-if="file.type.includes('video')">
-                                        <video class="media-preview mx-auto rounded" controls>
-                                            <source :src="file.preview" :type="file.type">
-                                            Your browser does not support the video tag.
-                                        </video>
-                                    </template>
-                                    <button 
-                                        @click="removeFile(index)" 
-                                        class="btn btn-circle btn-xs absolute top-1 right-1 bg-red-500 text-white border-none hover:bg-red-600"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
+                </div>
+            </div>
+            
+            <!-- Preview Step -->
+            <div x-show="step === 'preview'" class="w-full" style="transition: all 0.3s ease;">
+                <h3 class="text-lg font-semibold mb-2">Preview</h3>
+                
+                <div class="preview-container">
+                    <template x-for="(preview, index) in previewFiles" :key="index">
+                        <div class="preview-item" x-bind:style="{ backgroundImage: preview.type === 'image' ? `url(${preview.url})` : '' }">
+                            <template x-if="preview.type === 'video'">
+                                <video class="w-full h-full object-cover rounded-lg" controls>
+                                    <source :src="preview.url" :type="preview.file.type">
+                                </video>
+                            </template>
+                            <button @click="removeFile(index)" class="remove-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+                
+                <div class="flex justify-between mt-4">
+                    <button @click="step = 'upload'" class="border-2 border-gray-300 text-gray-700 py-2 px-4 rounded-lg">
+                        Back
+                    </button>
+                    <button @click="processFiles()" class="gradient-btn text-white py-2 px-6 rounded-lg">
+                        Enhance and Share
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Processing Step -->
+            <div x-show="step === 'processing'" class="w-full flex flex-col items-center justify-center" style="transition: all 0.3s ease;">
+                <div class="loading loading-spinner loading-lg text-red-400 mb-3"></div>
+                <p class="text-lg font-medium">Enhancing your content...</p>
+                <p class="text-sm text-gray-500">We're making your post look amazing!</p>
+            </div>
+            
+            <!-- Share Step -->
+            <div x-show="step === 'share'" class="w-full" style="transition: all 0.3s ease;">
+                <h3 class="text-lg font-semibold mb-2">Ready to Share</h3>
+                
+                <div class="preview-container">
+                    <template x-for="(preview, index) in previewFiles" :key="index">
+                        <div class="preview-item" x-bind:style="{ backgroundImage: preview.type === 'image' ? `url(${preview.url})` : '' }">
+                            <template x-if="preview.type === 'video'">
+                                <video class="w-full h-full object-cover rounded-lg" controls>
+                                    <source :src="preview.url" :type="preview.file.type">
+                                </video>
                             </template>
                         </div>
-                    </div>
-                    
-                    <div class="card-actions justify-end mt-4">
-                        <button 
-                            class="btn btn-primary" 
-                            @click="startEnhancing()"
-                            :disabled="files.length === 0"
-                        >
-                            Enhance Content
-                        </button>
-                    </div>
+                    </template>
                 </div>
-            </div>
-        </div>
-
-        <!-- Enhancing Section -->
-        <div x-show="step === 2" class="fade-in">
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <h2 class="card-title">Enhancing Your Content</h2>
-                    <p>Applying AI-powered enhancements to make your content look amazing...</p>
-                    
-                    <div class="my-8 flex flex-col items-center">
-                        <progress class="progress progress-primary w-56" :value="enhancingProgress" max="100"></progress>
-                        <p class="mt-3 text-gray-600" x-text="enhancingMessage"></p>
-                    </div>
-                    
-                    <!-- Preview of first file being enhanced -->
-                    <div x-show="files.length > 0" class="flex justify-center my-4">
-                        <template x-if="files[0].type.includes('image')">
-                            <img :src="files[0].preview" class="max-h-60 rounded-lg shadow-md" />
-                        </template>
-                        <template x-if="files[0].type.includes('video')">
-                            <video class="max-h-60 rounded-lg shadow-md" controls>
-                                <source :src="files[0].preview" :type="files[0].type">
-                                Your browser does not support the video tag.
-                            </video>
-                        </template>
-                    </div>
+                
+                <div class="mt-4 p-3 bg-gray-100 rounded-lg">
+                    <h4 class="text-sm font-semibold mb-1">Caption:</h4>
+                    <p x-text="caption" class="text-gray-700"></p>
                 </div>
-            </div>
-        </div>
-
-        <!-- Caption Generation Section -->
-        <div x-show="step === 3" class="fade-in">
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <h2 class="card-title">Generating Caption</h2>
-                    <p>Analyzing your content to create the perfect caption...</p>
-                    
-                    <div class="my-8 flex flex-col items-center">
-                        <progress class="progress progress-primary w-56" :value="captioningProgress" max="100"></progress>
-                        <p class="mt-3 text-gray-600" x-text="captioningMessage"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Share Section -->
-        <div x-show="step === 4" class="fade-in">
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <h2 class="card-title">Ready to Share!</h2>
-                    
-                    <!-- Content Preview -->
-                    <div class="my-6">
-                        <div class="bg-white p-4 rounded-lg shadow border mb-4">
-                            <div class="flex items-center mb-3">
-                                <div class="avatar">
-                                    <div class="w-10 rounded-full">
-                                        <div class="bg-primary text-white flex items-center justify-center h-full">
-                                            <span class="text-xl">👤</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="ml-3">
-                                    <p class="font-medium">Your Profile</p>
-                                    <p class="text-xs text-gray-500">Just now</p>
-                                </div>
-                            </div>
-                            
-                            <p class="mb-4 text-gray-800" x-text="generatedCaption"></p>
-                            
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                <template x-for="(file, index) in files.slice(0, 6)" :key="index">
-                                    <div class="relative aspect-square bg-gray-100 rounded overflow-hidden">
-                                        <template x-if="file.type.includes('image')">
-                                            <img :src="file.preview" class="w-full h-full object-cover" />
-                                        </template>
-                                        <template x-if="file.type.includes('video')">
-                                            <video class="w-full h-full object-cover">
-                                                <source :src="file.preview" :type="file.type">
-                                            </video>
-                                        </template>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                        
-                        <!-- Caption Edit -->
-                        <div class="mb-4">
-                            <label class="form-control">
-                                <div class="label">
-                                    <span class="label-text">Edit Caption</span>
-                                </div>
-                                <textarea 
-                                    x-model="generatedCaption" 
-                                    class="textarea textarea-bordered h-24"
-                                    placeholder="Enter your caption"
-                                ></textarea>
-                            </label>
-                        </div>
-                        
-                        <!-- Share Buttons -->
-                        <div class="flex flex-col space-y-3">
-                            <button 
-                                @click="shareContent('general')"
-                                class="btn btn-primary"
-                            >
-                                Share to Social Media
-                            </button>
-                            
-                            <div class="divider">Or share to specific platform</div>
-                            
-                            <div class="grid grid-cols-3 gap-2">
-                                <button 
-                                    @click="shareContent('instagram')"
-                                    class="btn btn-outline"
-                                >
-                                    Instagram
-                                </button>
-                                <button 
-                                    @click="shareContent('facebook')"
-                                    class="btn btn-outline"
-                                >
-                                    Facebook
-                                </button>
-                                <button 
-                                    @click="shareContent('whatsapp')"
-                                    class="btn btn-outline"
-                                >
-                                    WhatsApp
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Start Over Button -->
-                        <button 
-                            @click="resetApp()"
-                            class="btn btn-ghost w-full mt-6"
-                        >
-                            Start Over
-                        </button>
-                    </div>
+                
+                <div class="flex justify-between mt-4">
+                    <button @click="step = 'preview'" class="border-2 border-gray-300 text-gray-700 py-2 px-4 rounded-lg">
+                        Back
+                    </button>
+                    <button @click="shareContent()" class="gradient-btn text-white py-2 px-6 rounded-lg flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        Share
+                    </button>
                 </div>
             </div>
         </div>
         
-        <!-- Share Error Alert -->
-        <div class="toast toast-end" x-show="shareError">
-            <div class="alert alert-error">
-                <span x-text="shareErrorMessage"></span>
-            </div>
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <button class="flex flex-col items-center justify-center text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </button>
+            
+            <button @click="capturePhoto()" class="capture-btn text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+            
+            <button class="flex flex-col items-center justify-center text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+            </button>
         </div>
     </div>
-
-    <script>
-        function app() {
-            return {
-                step: 1,
-                files: [],
-                enhancingProgress: 0,
-                enhancingMessage: "Starting enhancement...",
-                captioningProgress: 0,
-                captioningMessage: "Analyzing content...",
-                generatedCaption: "",
-                shareError: false,
-                shareErrorMessage: "",
-                
-                // Handle file uploads
-                handleFileUpload(event) {
-                    const newFiles = Array.from(event.target.files);
-                    
-                    newFiles.forEach(file => {
-                        // Create object URLs for previews
-                        const preview = URL.createObjectURL(file);
-                        this.files.push({
-                            file: file,
-                            preview: preview,
-                            type: file.type
-                        });
-                    });
-                },
-                
-                // Remove a file from the selection
-                removeFile(index) {
-                    // Revoke the object URL to prevent memory leaks
-                    URL.revokeObjectURL(this.files[index].preview);
-                    this.files.splice(index, 1);
-                },
-                
-                // Start the enhancing process
-                startEnhancing() {
-                    this.step = 2;
-                    this.enhancingProgress = 0;
-                    
-                    const enhanceInterval = setInterval(() => {
-                        this.enhancingProgress += 5;
-                        
-                        if (this.enhancingProgress < 30) {
-                            this.enhancingMessage = "Analyzing image quality...";
-                        } else if (this.enhancingProgress < 60) {
-                            this.enhancingMessage = "Applying enhancements...";
-                        } else if (this.enhancingProgress < 90) {
-                            this.enhancingMessage = "Optimizing for social media...";
-                        } else {
-                            this.enhancingMessage = "Enhancement complete!";
-                        }
-                        
-                        if (this.enhancingProgress >= 100) {
-                            clearInterval(enhanceInterval);
-                            setTimeout(() => {
-                                this.startCaptioning();
-                            }, 500);
-                        }
-                    }, 100);
-                },
-                
-                // Start the captioning process
-                startCaptioning() {
-                    this.step = 3;
-                    this.captioningProgress = 0;
-                    
-                    const captionInterval = setInterval(() => {
-                        this.captioningProgress += 4;
-                        
-                        if (this.captioningProgress < 30) {
-                            this.captioningMessage = "Processing visual elements...";
-                        } else if (this.captioningProgress < 60) {
-                            this.captioningMessage = "Identifying content themes...";
-                        } else if (this.captioningProgress < 90) {
-                            this.captioningMessage = "Crafting engaging caption...";
-                        } else {
-                            this.captioningMessage = "Caption generated!";
-                        }
-                        
-                        if (this.captioningProgress >= 100) {
-                            clearInterval(captionInterval);
-                            setTimeout(() => {
-                                this.generateCaption();
-                                this.step = 4;
-                            }, 500);
-                        }
-                    }, 80);
-                },
-                
-                // Generate a dummy caption
-                generateCaption() {
-                    const captions = [
-                        "✨ Living my best life one moment at a time! #blessed #memories",
-                        "Captured this perfect moment! ❤️ What do you think?",
-                        "Sometimes the best memories are the unplanned ones! 🌟 #nofilter",
-                        "The journey is the destination. Loving every second! 🙌",
-                        "Good vibes only ✌️ #positivity #livinglife",
-                        "Creating memories that will last a lifetime 💫 #grateful"
-                    ];
-                    
-                    this.generatedCaption = captions[Math.floor(Math.random() * captions.length)];
-                },
-                
-                // Share content using Web Share API
-                shareContent(platform) {
-                    // Check if Web Share API is supported
-                    if (!navigator.share) {
-                        this.showShareError("Your device doesn't support the Share API. Try copying and sharing manually.");
-                        return;
-                    }
-                    
-                    let shareData = {
-                        title: 'My Enhanced Content',
-                        text: this.generatedCaption,
-                    };
-                    
-                    // For a real app, we'd need to create actual shareable files here
-                    // This is just simulating the share functionality
-                    
-                    navigator.share(shareData)
-                        .then(() => {
-                            console.log('Content shared successfully');
-                        })
-                        .catch((error) => {
-                            console.error('Error sharing:', error);
-                            this.showShareError("Couldn't share content: " + error.message);
-                        });
-                },
-                
-                // Show share error
-                showShareError(message) {
-                    this.shareError = true;
-                    this.shareErrorMessage = message;
-                    
-                    setTimeout(() => {
-                        this.shareError = false;
-                    }, 3000);
-                },
-                
-                // Reset the app
-                resetApp() {
-                    // Revoke all object URLs to prevent memory leaks
-                    this.files.forEach(file => {
-                        URL.revokeObjectURL(file.preview);
-                    });
-                    
-                    this.files = [];
-                    this.step = 1;
-                    this.enhancingProgress = 0;
-                    this.captioningProgress = 0;
-                    this.generatedCaption = "";
-                }
-            }
-        }
-    </script>
 </body>
 </html> 

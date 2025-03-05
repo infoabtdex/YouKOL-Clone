@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Content Enhancer</title>
+    <!-- Tailwind and DaisyUI CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js CDN -->
+    <script defer src="https://unpkg.com/alpinejs@3.13.1/dist/cdn.min.js"></script>
+    <style>
+        .media-preview {
+            max-height: 200px;
+            object-fit: contain;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div x-data="app()" class="container mx-auto px-4 py-8">
+        <!-- App Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-primary">Content Enhancer</h1>
+            <p class="text-gray-600">Enhance and share your photos and videos</p>
+        </div>
+
+        <!-- Step Progress -->
+        <div class="w-full mb-8">
+            <ul class="steps steps-vertical md:steps-horizontal w-full">
+                <li class="step" :class="{'step-primary': step >= 1}">Upload</li>
+                <li class="step" :class="{'step-primary': step >= 2}">Enhance</li>
+                <li class="step" :class="{'step-primary': step >= 3}">Caption</li>
+                <li class="step" :class="{'step-primary': step >= 4}">Share</li>
+            </ul>
+        </div>
+
+        <!-- Upload Section -->
+        <div x-show="step === 1" class="fade-in">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Upload Images or Videos</h2>
+                    <label class="form-control w-full">
+                        <div class="label">
+                            <span class="label-text">Choose files to upload</span>
+                        </div>
+                        <input 
+                            type="file" 
+                            class="file-input file-input-bordered file-input-primary w-full" 
+                            accept="image/*,video/*" 
+                            multiple
+                            @change="handleFileUpload($event)"
+                        />
+                        <div class="label">
+                            <span class="label-text-alt">Supported: JPG, PNG, GIF, MP4</span>
+                        </div>
+                    </label>
+
+                    <!-- Preview Area -->
+                    <div class="mt-4">
+                        <div x-show="files.length > 0" class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                            <template x-for="(file, index) in files" :key="index">
+                                <div class="relative border rounded-lg p-2 bg-gray-50">
+                                    <template x-if="file.type.includes('image')">
+                                        <img :src="file.preview" class="media-preview mx-auto rounded" />
+                                    </template>
+                                    <template x-if="file.type.includes('video')">
+                                        <video class="media-preview mx-auto rounded" controls>
+                                            <source :src="file.preview" :type="file.type">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    </template>
+                                    <button 
+                                        @click="removeFile(index)" 
+                                        class="btn btn-circle btn-xs absolute top-1 right-1 bg-red-500 text-white border-none hover:bg-red-600"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions justify-end mt-4">
+                        <button 
+                            class="btn btn-primary" 
+                            @click="startEnhancing()"
+                            :disabled="files.length === 0"
+                        >
+                            Enhance Content
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhancing Section -->
+        <div x-show="step === 2" class="fade-in">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Enhancing Your Content</h2>
+                    <p>Applying AI-powered enhancements to make your content look amazing...</p>
+                    
+                    <div class="my-8 flex flex-col items-center">
+                        <progress class="progress progress-primary w-56" :value="enhancingProgress" max="100"></progress>
+                        <p class="mt-3 text-gray-600" x-text="enhancingMessage"></p>
+                    </div>
+                    
+                    <!-- Preview of first file being enhanced -->
+                    <div x-show="files.length > 0" class="flex justify-center my-4">
+                        <template x-if="files[0].type.includes('image')">
+                            <img :src="files[0].preview" class="max-h-60 rounded-lg shadow-md" />
+                        </template>
+                        <template x-if="files[0].type.includes('video')">
+                            <video class="max-h-60 rounded-lg shadow-md" controls>
+                                <source :src="files[0].preview" :type="files[0].type">
+                                Your browser does not support the video tag.
+                            </video>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Caption Generation Section -->
+        <div x-show="step === 3" class="fade-in">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Generating Caption</h2>
+                    <p>Analyzing your content to create the perfect caption...</p>
+                    
+                    <div class="my-8 flex flex-col items-center">
+                        <progress class="progress progress-primary w-56" :value="captioningProgress" max="100"></progress>
+                        <p class="mt-3 text-gray-600" x-text="captioningMessage"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share Section -->
+        <div x-show="step === 4" class="fade-in">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Ready to Share!</h2>
+                    
+                    <!-- Content Preview -->
+                    <div class="my-6">
+                        <div class="bg-white p-4 rounded-lg shadow border mb-4">
+                            <div class="flex items-center mb-3">
+                                <div class="avatar">
+                                    <div class="w-10 rounded-full">
+                                        <div class="bg-primary text-white flex items-center justify-center h-full">
+                                            <span class="text-xl">👤</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="font-medium">Your Profile</p>
+                                    <p class="text-xs text-gray-500">Just now</p>
+                                </div>
+                            </div>
+                            
+                            <p class="mb-4 text-gray-800" x-text="generatedCaption"></p>
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                <template x-for="(file, index) in files.slice(0, 6)" :key="index">
+                                    <div class="relative aspect-square bg-gray-100 rounded overflow-hidden">
+                                        <template x-if="file.type.includes('image')">
+                                            <img :src="file.preview" class="w-full h-full object-cover" />
+                                        </template>
+                                        <template x-if="file.type.includes('video')">
+                                            <video class="w-full h-full object-cover">
+                                                <source :src="file.preview" :type="file.type">
+                                            </video>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Caption Edit -->
+                        <div class="mb-4">
+                            <label class="form-control">
+                                <div class="label">
+                                    <span class="label-text">Edit Caption</span>
+                                </div>
+                                <textarea 
+                                    x-model="generatedCaption" 
+                                    class="textarea textarea-bordered h-24"
+                                    placeholder="Enter your caption"
+                                ></textarea>
+                            </label>
+                        </div>
+                        
+                        <!-- Share Buttons -->
+                        <div class="flex flex-col space-y-3">
+                            <button 
+                                @click="shareContent('general')"
+                                class="btn btn-primary"
+                            >
+                                Share to Social Media
+                            </button>
+                            
+                            <div class="divider">Or share to specific platform</div>
+                            
+                            <div class="grid grid-cols-3 gap-2">
+                                <button 
+                                    @click="shareContent('instagram')"
+                                    class="btn btn-outline"
+                                >
+                                    Instagram
+                                </button>
+                                <button 
+                                    @click="shareContent('facebook')"
+                                    class="btn btn-outline"
+                                >
+                                    Facebook
+                                </button>
+                                <button 
+                                    @click="shareContent('whatsapp')"
+                                    class="btn btn-outline"
+                                >
+                                    WhatsApp
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Start Over Button -->
+                        <button 
+                            @click="resetApp()"
+                            class="btn btn-ghost w-full mt-6"
+                        >
+                            Start Over
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Share Error Alert -->
+        <div class="toast toast-end" x-show="shareError">
+            <div class="alert alert-error">
+                <span x-text="shareErrorMessage"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                step: 1,
+                files: [],
+                enhancingProgress: 0,
+                enhancingMessage: "Starting enhancement...",
+                captioningProgress: 0,
+                captioningMessage: "Analyzing content...",
+                generatedCaption: "",
+                shareError: false,
+                shareErrorMessage: "",
+                
+                // Handle file uploads
+                handleFileUpload(event) {
+                    const newFiles = Array.from(event.target.files);
+                    
+                    newFiles.forEach(file => {
+                        // Create object URLs for previews
+                        const preview = URL.createObjectURL(file);
+                        this.files.push({
+                            file: file,
+                            preview: preview,
+                            type: file.type
+                        });
+                    });
+                },
+                
+                // Remove a file from the selection
+                removeFile(index) {
+                    // Revoke the object URL to prevent memory leaks
+                    URL.revokeObjectURL(this.files[index].preview);
+                    this.files.splice(index, 1);
+                },
+                
+                // Start the enhancing process
+                startEnhancing() {
+                    this.step = 2;
+                    this.enhancingProgress = 0;
+                    
+                    const enhanceInterval = setInterval(() => {
+                        this.enhancingProgress += 5;
+                        
+                        if (this.enhancingProgress < 30) {
+                            this.enhancingMessage = "Analyzing image quality...";
+                        } else if (this.enhancingProgress < 60) {
+                            this.enhancingMessage = "Applying enhancements...";
+                        } else if (this.enhancingProgress < 90) {
+                            this.enhancingMessage = "Optimizing for social media...";
+                        } else {
+                            this.enhancingMessage = "Enhancement complete!";
+                        }
+                        
+                        if (this.enhancingProgress >= 100) {
+                            clearInterval(enhanceInterval);
+                            setTimeout(() => {
+                                this.startCaptioning();
+                            }, 500);
+                        }
+                    }, 100);
+                },
+                
+                // Start the captioning process
+                startCaptioning() {
+                    this.step = 3;
+                    this.captioningProgress = 0;
+                    
+                    const captionInterval = setInterval(() => {
+                        this.captioningProgress += 4;
+                        
+                        if (this.captioningProgress < 30) {
+                            this.captioningMessage = "Processing visual elements...";
+                        } else if (this.captioningProgress < 60) {
+                            this.captioningMessage = "Identifying content themes...";
+                        } else if (this.captioningProgress < 90) {
+                            this.captioningMessage = "Crafting engaging caption...";
+                        } else {
+                            this.captioningMessage = "Caption generated!";
+                        }
+                        
+                        if (this.captioningProgress >= 100) {
+                            clearInterval(captionInterval);
+                            setTimeout(() => {
+                                this.generateCaption();
+                                this.step = 4;
+                            }, 500);
+                        }
+                    }, 80);
+                },
+                
+                // Generate a dummy caption
+                generateCaption() {
+                    const captions = [
+                        "✨ Living my best life one moment at a time! #blessed #memories",
+                        "Captured this perfect moment! ❤️ What do you think?",
+                        "Sometimes the best memories are the unplanned ones! 🌟 #nofilter",
+                        "The journey is the destination. Loving every second! 🙌",
+                        "Good vibes only ✌️ #positivity #livinglife",
+                        "Creating memories that will last a lifetime 💫 #grateful"
+                    ];
+                    
+                    this.generatedCaption = captions[Math.floor(Math.random() * captions.length)];
+                },
+                
+                // Share content using Web Share API
+                shareContent(platform) {
+                    // Check if Web Share API is supported
+                    if (!navigator.share) {
+                        this.showShareError("Your device doesn't support the Share API. Try copying and sharing manually.");
+                        return;
+                    }
+                    
+                    let shareData = {
+                        title: 'My Enhanced Content',
+                        text: this.generatedCaption,
+                    };
+                    
+                    // For a real app, we'd need to create actual shareable files here
+                    // This is just simulating the share functionality
+                    
+                    navigator.share(shareData)
+                        .then(() => {
+                            console.log('Content shared successfully');
+                        })
+                        .catch((error) => {
+                            console.error('Error sharing:', error);
+                            this.showShareError("Couldn't share content: " + error.message);
+                        });
+                },
+                
+                // Show share error
+                showShareError(message) {
+                    this.shareError = true;
+                    this.shareErrorMessage = message;
+                    
+                    setTimeout(() => {
+                        this.shareError = false;
+                    }, 3000);
+                },
+                
+                // Reset the app
+                resetApp() {
+                    // Revoke all object URLs to prevent memory leaks
+                    this.files.forEach(file => {
+                        URL.revokeObjectURL(file.preview);
+                    });
+                    
+                    this.files = [];
+                    this.step = 1;
+                    this.enhancingProgress = 0;
+                    this.captioningProgress = 0;
+                    this.generatedCaption = "";
+                }
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -60,6 +60,85 @@
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
         }
+        
+        .camera-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .camera-feed {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .camera-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+        }
+        
+        .camera-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .camera-button-inner {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #E9756B;
+        }
+        
+        .camera-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .camera-option svg {
+            width: 24px;
+            height: 24px;
+            color: #fff;
+        }
+        
+        .camera-top-controls {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            z-index: 1001;
+        }
     </style>
 </head>
 <body class="bg-white">
@@ -249,6 +328,46 @@
                 </svg>
             </button>
         </div>
+        
+        <!-- Camera Interface -->
+        <div x-show="cameraActive" class="camera-container">
+            <div class="camera-top-controls">
+                <button @click="closeCamera()" class="text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <button @click="toggleFlash()" class="text-white">
+                    <svg x-show="!flashActive" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <svg x-show="flashActive" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </button>
+            </div>
+            
+            <video id="camera-feed" class="camera-feed" autoplay playsinline></video>
+            
+            <div class="camera-controls">
+                <div class="camera-option" @click="toggleCamera()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                </div>
+                <div class="camera-button" @click="takePicture()">
+                    <div class="camera-button-inner"></div>
+                </div>
+                <div class="camera-option" @click="captureVideo()">
+                    <svg x-show="!isRecording" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <svg x-show="isRecording" xmlns="http://www.w3.org/2000/svg" class="text-red-500" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                        <circle cx="12" cy="12" r="8" />
+                    </svg>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -257,11 +376,237 @@
                 currentState: 'initial', // initial, preview, processing, complete
                 selectedFiles: [],
                 postMediaUrls: [],
+                cameraActive: false,
+                mediaStream: null,
+                videoElement: null,
+                facingMode: 'environment', // 'environment' for back camera, 'user' for front camera
+                flashActive: false,
+                isRecording: false,
+                mediaRecorder: null,
+                recordedChunks: [],
+                capturedImage: null,
                 
-                captureMedia() {
-                    // On mobile, this would trigger the camera
-                    // For simplicity, we'll just trigger the file upload for now
-                    document.getElementById('file-upload').click();
+                async captureMedia() {
+                    try {
+                        // Request camera permissions
+                        const constraints = {
+                            video: {
+                                facingMode: this.facingMode,
+                                width: { ideal: 1920 },
+                                height: { ideal: 1080 }
+                            }
+                        };
+                        
+                        this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                        this.videoElement = document.getElementById('camera-feed');
+                        this.videoElement.srcObject = this.mediaStream;
+                        
+                        this.cameraActive = true;
+                    } catch (error) {
+                        console.error('Error accessing camera:', error);
+                        alert('Could not access camera. Please make sure you have granted camera permissions and are using a compatible browser.');
+                        
+                        // Fallback to file upload if camera access fails
+                        document.getElementById('file-upload').click();
+                    }
+                },
+                
+                closeCamera() {
+                    if (this.mediaStream) {
+                        // Stop all tracks
+                        this.mediaStream.getTracks().forEach(track => track.stop());
+                        this.mediaStream = null;
+                    }
+                    
+                    // Stop recording if active
+                    if (this.isRecording && this.mediaRecorder) {
+                        this.mediaRecorder.stop();
+                    }
+                    
+                    this.cameraActive = false;
+                    this.isRecording = false;
+                },
+                
+                toggleCamera() {
+                    // Switch between front and back cameras
+                    this.facingMode = this.facingMode === 'environment' ? 'user' : 'environment';
+                    
+                    // Close current camera stream
+                    if (this.mediaStream) {
+                        this.mediaStream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    // Restart camera with new facing mode
+                    this.captureMedia();
+                },
+                
+                toggleFlash() {
+                    if (this.mediaStream) {
+                        const track = this.mediaStream.getVideoTracks()[0];
+                        
+                        // Check if torch/flash is supported
+                        if (track && track.getCapabilities && track.getCapabilities().torch) {
+                            this.flashActive = !this.flashActive;
+                            track.applyConstraints({
+                                advanced: [{ torch: this.flashActive }]
+                            }).catch(e => {
+                                console.error('Flash not supported:', e);
+                                alert('Flash/torch is not supported on this device.');
+                                this.flashActive = false;
+                            });
+                        } else {
+                            alert('Flash/torch is not supported on this device.');
+                        }
+                    }
+                },
+                
+                takePicture() {
+                    if (!this.videoElement || !this.mediaStream) return;
+                    
+                    // Create a canvas element to capture the frame
+                    const canvas = document.createElement('canvas');
+                    canvas.width = this.videoElement.videoWidth;
+                    canvas.height = this.videoElement.videoHeight;
+                    
+                    // Draw the current video frame to the canvas
+                    const context = canvas.getContext('2d');
+                    context.drawImage(this.videoElement, 0, 0, canvas.width, canvas.height);
+                    
+                    // Convert canvas to blob
+                    canvas.toBlob(blob => {
+                        // Create a File object from the blob
+                        const fileName = `image_${new Date().getTime()}.jpg`;
+                        const imageFile = new File([blob], fileName, { type: 'image/jpeg' });
+                        
+                        // Add the captured image to selected files
+                        this.selectedFiles.push(imageFile);
+                        
+                        // Close camera and show preview
+                        this.closeCamera();
+                        this.currentState = 'preview';
+                    }, 'image/jpeg', 0.9);
+                },
+                
+                captureVideo() {
+                    if (!this.videoElement || !this.mediaStream) return;
+                    
+                    if (!this.isRecording) {
+                        // Start recording
+                        this.recordedChunks = [];
+                        this.isRecording = true;
+                        
+                        // Add audio to stream if needed
+                        navigator.mediaDevices.getUserMedia({ audio: true })
+                            .then(audioStream => {
+                                // Combine video and audio tracks
+                                const combinedStream = new MediaStream([
+                                    ...this.mediaStream.getVideoTracks(),
+                                    ...audioStream.getAudioTracks()
+                                ]);
+                                
+                                // Create media recorder
+                                this.mediaRecorder = new MediaRecorder(combinedStream, {
+                                    mimeType: this.getSupportedMimeType()
+                                });
+                                
+                                // Handle data available event
+                                this.mediaRecorder.ondataavailable = (event) => {
+                                    if (event.data.size > 0) {
+                                        this.recordedChunks.push(event.data);
+                                    }
+                                };
+                                
+                                // Handle recording stop
+                                this.mediaRecorder.onstop = () => {
+                                    // Create blob from recorded chunks
+                                    const blob = new Blob(this.recordedChunks, {
+                                        type: this.getSupportedMimeType()
+                                    });
+                                    
+                                    // Create a File object from the blob
+                                    const fileName = `video_${new Date().getTime()}.${this.getFileExtension(this.getSupportedMimeType())}`;
+                                    const videoFile = new File([blob], fileName, { type: this.getSupportedMimeType() });
+                                    
+                                    // Add the recorded video to selected files
+                                    this.selectedFiles.push(videoFile);
+                                    
+                                    // Close camera and show preview
+                                    this.closeCamera();
+                                    this.currentState = 'preview';
+                                    
+                                    // Stop audio tracks
+                                    audioStream.getTracks().forEach(track => track.stop());
+                                };
+                                
+                                // Start recording
+                                this.mediaRecorder.start(100); // Collect data every 100ms
+                            })
+                            .catch(error => {
+                                console.error('Error accessing audio:', error);
+                                
+                                // Fall back to video-only recording
+                                this.recordVideo(this.mediaStream);
+                            });
+                    } else {
+                        // Stop recording
+                        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                            this.mediaRecorder.stop();
+                        }
+                        this.isRecording = false;
+                    }
+                },
+                
+                // Fallback for video-only recording
+                recordVideo(stream) {
+                    this.mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: this.getSupportedMimeType()
+                    });
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.recordedChunks.push(event.data);
+                        }
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        const blob = new Blob(this.recordedChunks, {
+                            type: this.getSupportedMimeType()
+                        });
+                        
+                        const fileName = `video_${new Date().getTime()}.${this.getFileExtension(this.getSupportedMimeType())}`;
+                        const videoFile = new File([blob], fileName, { type: this.getSupportedMimeType() });
+                        
+                        this.selectedFiles.push(videoFile);
+                        this.closeCamera();
+                        this.currentState = 'preview';
+                    };
+                    
+                    this.mediaRecorder.start(100);
+                },
+                
+                getSupportedMimeType() {
+                    const types = [
+                        'video/webm;codecs=vp9,opus',
+                        'video/webm;codecs=vp8,opus',
+                        'video/webm',
+                        'video/mp4',
+                        'video/mpeg'
+                    ];
+                    
+                    for (const type of types) {
+                        if (MediaRecorder.isTypeSupported(type)) {
+                            return type;
+                        }
+                    }
+                    
+                    return 'video/webm'; // Default, might not work on all browsers
+                },
+                
+                getFileExtension(mimeType) {
+                    if (mimeType.includes('webm')) return 'webm';
+                    if (mimeType.includes('mp4')) return 'mp4';
+                    if (mimeType.includes('mpeg')) return 'mp4';
+                    return 'webm'; // Default
                 },
                 
                 handleFileUpload(event) {
@@ -289,30 +634,93 @@
                 processPost() {
                     this.currentState = 'processing';
                     
-                    // Simulate processing delay
+                    // Process the files - in a real app, you might upload to a server
+                    // For this example, we'll simulate processing with a timeout
                     setTimeout(() => {
-                        // Convert selected files to viewable URLs
+                        // Convert selected files to viewable URLs and prepare for sharing
                         this.postMediaUrls = this.selectedFiles.map(file => ({
                             src: URL.createObjectURL(file),
-                            type: file.type
+                            type: file.type,
+                            file: file // Keep reference to original file for sharing
                         }));
                         
                         this.currentState = 'complete';
                     }, 1500);
                 },
                 
-                sharePost() {
-                    // Web Share API - works on mobile browsers
-                    if (navigator.share) {
-                        navigator.share({
-                            title: 'Check out my post on ImaKOL',
-                            text: 'I just created a new post on ImaKOL!',
-                            // In a real app, you would have a URL to the actual post
-                            url: window.location.href
-                        })
-                        .catch((error) => console.log('Error sharing:', error));
-                    } else {
-                        alert('Sharing is not supported on this browser. Your post has been saved!');
+                async sharePost() {
+                    try {
+                        // Check if Web Share API is available
+                        if (navigator.share) {
+                            // Basic sharing data
+                            const shareData = {
+                                title: 'Check out my post on ImaKOL',
+                                text: 'I just created a new post on ImaKOL!',
+                                url: window.location.href
+                            };
+                            
+                            // Check if file sharing is supported
+                            if (navigator.canShare && this.selectedFiles.length > 0) {
+                                try {
+                                    // Prepare files - we need to convert them to proper format for sharing
+                                    const filesToShare = [];
+                                    
+                                    // Try to share only the first file to increase compatibility
+                                    const file = this.selectedFiles[0];
+                                    
+                                    // Check if we can share this file
+                                    const testShareData = {
+                                        files: [file]
+                                    };
+                                    
+                                    if (navigator.canShare(testShareData)) {
+                                        filesToShare.push(file);
+                                        shareData.files = filesToShare;
+                                    } else {
+                                        console.log('File sharing not supported for this file type');
+                                    }
+                                } catch (fileError) {
+                                    console.error('Error preparing files for sharing:', fileError);
+                                    // Continue with basic sharing without files
+                                }
+                            }
+                            
+                            // Perform the actual sharing
+                            await navigator.share(shareData);
+                            console.log('Content shared successfully');
+                            
+                        } else if (navigator.clipboard) {
+                            // Fallback to clipboard
+                            await navigator.clipboard.writeText(window.location.href);
+                            alert('Sharing is not supported on this browser. A link to your post has been copied to your clipboard.');
+                        } else {
+                            alert('Sharing is not supported on this browser.');
+                        }
+                    } catch (error) {
+                        console.error('Error sharing:', error);
+                        
+                        if (error.name === 'AbortError') {
+                            // User cancelled the share operation
+                            console.log('Share operation cancelled by user');
+                        } else if (error.name === 'NotAllowedError') {
+                            alert('Permission to share was denied');
+                        } else if (error.name === 'DataError' || error.name === 'TypeError') {
+                            // Try again without files
+                            try {
+                                if (navigator.share) {
+                                    await navigator.share({
+                                        title: 'Check out my post on ImaKOL',
+                                        text: 'I just created a new post on ImaKOL!',
+                                        url: window.location.href
+                                    });
+                                    console.log('Content shared successfully without files');
+                                }
+                            } catch (retryError) {
+                                alert('Could not share your post. You may need to save the media files manually.');
+                            }
+                        } else {
+                            alert('Could not share your post. You may need to save the media files manually.');
+                        }
                     }
                 }
             };

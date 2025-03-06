@@ -1237,127 +1237,30 @@
                 async sharePost() {
                     try {
                         // Check if Web Share API is available
-                        if (navigator.share) {
-                            // Basic sharing data
-                            const shareData = {
-                                title: 'Check out my post on ImaKOL',
-                                text: this.generatedCaption || 'I just created a new post on ImaKOL!',
-                                url: window.location.href
-                            };
-                            
-                            // Check if file sharing is supported
-                            if (navigator.canShare && this.selectedFiles.length > 0) {
-                                try {
-                                    // Try to share all files if possible
-                                    const allFilesData = {
-                                        files: this.selectedFiles
-                                    };
-                                    
-                                    // First check if we can share all files
-                                    if (navigator.canShare(allFilesData)) {
-                                        shareData.files = this.selectedFiles;
-                                        console.log('Sharing all files:', this.selectedFiles.length);
-                                    } else {
-                                        console.log('Cannot share all files together, trying individually');
-                                        
-                                        // If not, try to find shareable files
-                                        const shareableFiles = [];
-                                        
-                                        for (const file of this.selectedFiles) {
-                                            const testData = { files: [file] };
-                                            if (navigator.canShare(testData)) {
-                                                shareableFiles.push(file);
-                                            }
-                                        }
-                                        
-                                        if (shareableFiles.length > 0) {
-                                            shareData.files = shareableFiles;
-                                            console.log('Sharing subset of files:', shareableFiles.length);
-                                        } else {
-                                            console.log('No shareable files found');
-                                        }
-                                    }
-                                } catch (fileError) {
-                                    console.error('Error preparing files for sharing:', fileError);
-                                    // Continue with basic sharing without files
-                                }
-                            }
-                            
-                            // Create a fallback blob URL for file download if needed
-                            let fallbackURL = null;
-                            
-                            // Perform the actual sharing
-                            try {
-                                await navigator.share(shareData);
-                                console.log('Content shared successfully');
-                            } catch (shareError) {
-                                console.error('Initial share attempt failed:', shareError);
-                                
-                                // If sharing with files failed, create a fallback with a downloadable blob
-                                if (shareData.files && shareData.files.length > 0 && this.generatedCaption) {
-                                    try {
-                                        // Try again with just text and a special format that includes caption
-                                        const enhancedText = `${this.generatedCaption}\n\nShared via ImaKOL: ${window.location.href}`;
-                                        
-                                        await navigator.share({
-                                            title: 'Check out my post on ImaKOL',
-                                            text: enhancedText,
-                                            url: window.location.href
-                                        });
-                                        
-                                        console.log('Shared with enhanced text format');
-                                    } catch (textShareError) {
-                                        throw shareError; // Re-throw the original error for error handling below
-                                    }
-                                } else {
-                                    throw shareError;
-                                }
-                            }
-                        } else if (navigator.clipboard) {
-                            // Fallback to clipboard
-                            const clipboardText = this.generatedCaption 
-                                ? `${this.generatedCaption}\n\nShared via ImaKOL: ${window.location.href}`
-                                : window.location.href;
-                            
-                            await navigator.clipboard.writeText(clipboardText);
-                            alert('Sharing is not supported on this browser. The caption and a link to your post have been copied to your clipboard.');
-                        } else {
+                        if (!navigator.share || !navigator.canShare) {
                             alert('Sharing is not supported on this browser.');
+                            return;
                         }
+                        
+                        // Create share data with both text and files
+                        const shareData = {
+                            title: 'Check out my post on ImaKOL',
+                            text: this.generatedCaption || 'I just created a new post on ImaKOL!',
+                            files: this.selectedFiles
+                        };
+                        
+                        // Check if we can share this combination
+                        if (!navigator.canShare(shareData)) {
+                            alert('Your browser does not support sharing both text and files together.');
+                            return;
+                        }
+                        
+                        // Perform the actual sharing - no fallbacks
+                        await navigator.share(shareData);
+                        console.log('Content shared successfully');
                     } catch (error) {
                         console.error('Error sharing:', error);
-                        
-                        if (error.name === 'AbortError') {
-                            // User cancelled the share operation
-                            console.log('Share operation cancelled by user');
-                        } else if (error.name === 'NotAllowedError') {
-                            alert('Permission to share was denied');
-                        } else if (error.name === 'DataError' || error.name === 'TypeError') {
-                            // Try one more time - text only with enhanced caption format
-                            try {
-                                if (navigator.share) {
-                                    const enhancedText = this.generatedCaption 
-                                        ? `${this.generatedCaption}\n\nShared via ImaKOL: ${window.location.href}`
-                                        : 'I just created a new post on ImaKOL!';
-                                    
-                                    await navigator.share({
-                                        title: 'Check out my post on ImaKOL',
-                                        text: enhancedText,
-                                        url: window.location.href
-                                    });
-                                    console.log('Content shared successfully with text only');
-                                    
-                                    // Inform user that the media couldn't be shared
-                                    setTimeout(() => {
-                                        alert('Your caption was shared but the media files could not be included due to browser limitations.');
-                                    }, 1000);
-                                }
-                            } catch (retryError) {
-                                alert('Could not share your post. You may need to save the media files manually.');
-                            }
-                        } else {
-                            alert('Could not share your post. You may need to save the media files manually.');
-                        }
+                        alert('Sharing failed: ' + error.message);
                     }
                 }
             };

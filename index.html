@@ -1242,22 +1242,35 @@
                             return;
                         }
                         
-                        // Create share data with both text and files
-                        const shareData = {
-                            title: 'Check out my post on ImaKOL',
-                            text: this.generatedCaption || 'I just created a new post on ImaKOL!',
+                        // Ensure we have a caption to share
+                        const caption = this.generatedCaption || 'I just created a new post on ImaKOL!';
+                        
+                        // Always use a 2-step approach - share files first
+                        const filesOnlyShareData = {
                             files: this.selectedFiles
                         };
                         
-                        // Check if we can share this combination
-                        if (!navigator.canShare(shareData)) {
-                            alert('Your browser does not support sharing both text and files together.');
+                        if (navigator.canShare(filesOnlyShareData)) {
+                            // Share files first
+                            await navigator.share(filesOnlyShareData);
+                            
+                            // Then always share text in a second operation
+                            try {
+                                await navigator.share({
+                                    title: 'Caption for my ImaKOL post',
+                                    text: caption
+                                });
+                                console.log('Content shared in two operations');
+                            } catch (textError) {
+                                console.error('Error sharing caption text:', textError);
+                                alert('Files shared successfully, but could not share caption separately.');
+                            }
                             return;
                         }
                         
-                        // Perform the actual sharing - no fallbacks
-                        await navigator.share(shareData);
-                        console.log('Content shared successfully');
+                        // If we can't share files at all
+                        alert('Your browser does not support sharing files.');
+                        
                     } catch (error) {
                         console.error('Error sharing:', error);
                         alert('Sharing failed: ' + error.message);

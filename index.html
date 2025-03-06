@@ -1234,19 +1234,370 @@
                     }
                 },
                 
+                // Detect if user is on Android device
+                isAndroid() {
+                    return /Android/i.test(navigator.userAgent);
+                },
+                
+                // Detect if user is on iOS device
+                isIOS() {
+                    return /iPhone|iPad|iPod/i.test(navigator.userAgent) || 
+                          (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+                },
+                
+                // Create an image with caption embedded for Android sharing
+                async createCaptionedImage(imageFile, caption) {
+                    return new Promise((resolve, reject) => {
+                        try {
+                            // Create Image object to load the image file
+                            const img = new Image();
+                            img.onload = () => {
+                                try {
+                                    // Create canvas with some extra height for the caption
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    
+                                    // Set dimensions - original image width but with extra height for caption
+                                    const padding = 24; // Increased padding
+                                    const captionHeight = 105;  // Increased height for caption to accommodate larger text
+                                    canvas.width = img.width;
+                                    canvas.height = img.height + captionHeight + padding * 2;
+                                    
+                                    // Fill background with white
+                                    ctx.fillStyle = '#FFFFFF';
+                                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                    
+                                    // Draw the image
+                                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                                    
+                                    // Draw a divider line
+                                    ctx.strokeStyle = '#E5E7EB';
+                                    ctx.lineWidth = 1;
+                                    ctx.beginPath();
+                                    ctx.moveTo(padding, img.height + padding / 2);
+                                    ctx.lineTo(canvas.width - padding, img.height + padding / 2);
+                                    ctx.stroke();
+                                    
+                                    // Add ImaKOL logo/brand - increased font size by 30%
+                                    ctx.fillStyle = '#E9756B';
+                                    ctx.font = 'bold 21px sans-serif'; // Increased from 16px to 21px (30% larger)
+                                    ctx.fillText('ImaKOL', padding, img.height + padding * 1.5);
+                                    
+                                    // Configure text styling for caption - increased font size by 30%
+                                    ctx.fillStyle = '#333333';
+                                    ctx.font = '21px sans-serif'; // Increased from 16px to 21px (30% larger)
+                                    
+                                    // Handle text wrapping for caption
+                                    const maxWidth = canvas.width - (padding * 2);
+                                    const words = caption.split(' ');
+                                    let line = '';
+                                    let y = img.height + padding * 2.5;
+                                    const lineHeight = 28; // Increased from 22px to 28px (30% larger)
+                                    
+                                    // Draw caption with word wrapping
+                                    for (let i = 0; i < words.length; i++) {
+                                        const testLine = line + words[i] + ' ';
+                                        const metrics = ctx.measureText(testLine);
+                                        
+                                        if (metrics.width > maxWidth && i > 0) {
+                                            ctx.fillText(line, padding, y);
+                                            line = words[i] + ' ';
+                                            y += lineHeight;
+                                            
+                                            // If too many lines, truncate with ellipsis
+                                            if (y > img.height + captionHeight + padding) {
+                                                ctx.fillText(line.slice(0, -3) + '...', padding, y - lineHeight);
+                                                break;
+                                            }
+                                        } else {
+                                            line = testLine;
+                                        }
+                                    }
+                                    
+                                    // Draw the last line of text
+                                    if (y <= img.height + captionHeight + padding) {
+                                        ctx.fillText(line, padding, y);
+                                    }
+                                    
+                                    // Convert canvas to blob
+                                    canvas.toBlob((blob) => {
+                                        const fileName = `imakol_${new Date().getTime()}.jpg`;
+                                        const captionedImageFile = new File([blob], fileName, { 
+                                            type: 'image/jpeg', 
+                                            lastModified: new Date().getTime()
+                                        });
+                                        
+                                        resolve(captionedImageFile);
+                                    }, 'image/jpeg', 0.95);
+                                    
+                                } catch (canvasError) {
+                                    console.error('Error creating captioned image:', canvasError);
+                                    reject(canvasError);
+                                }
+                            };
+                            
+                            img.onerror = (error) => {
+                                console.error('Error loading image for captioning:', error);
+                                reject(new Error('Failed to load image for captioning'));
+                            };
+                            
+                            // Load image from file
+                            img.src = URL.createObjectURL(imageFile);
+                            
+                        } catch (error) {
+                            console.error('Error in createCaptionedImage:', error);
+                            reject(error);
+                        }
+                    });
+                },
+                
+                // Create a collage image with multiple images and caption
+                async createImageCollage(imageFiles, caption) {
+                    return new Promise((resolve, reject) => {
+                        try {
+                            // Create canvas for the collage
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Set dimensions - we'll use a square layout
+                            const collageSize = 1080; // Standard Instagram size
+                            const padding = 24; // Increased padding
+                            const captionHeight = 130; // Increased height to accommodate larger text
+                            
+                            canvas.width = collageSize;
+                            canvas.height = collageSize + captionHeight + padding * 2;
+                            
+                            // Fill background with white
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Determine grid layout based on number of images (max 4)
+                            const imagesToRender = imageFiles.slice(0, 4);
+                            const imageCount = imagesToRender.length;
+                            
+                            // Load all images first
+                            const loadImagePromises = imagesToRender.map(file => {
+                                return new Promise((resolveImg, rejectImg) => {
+                                    const img = new Image();
+                                    img.onload = () => resolveImg(img);
+                                    img.onerror = rejectImg;
+                                    img.src = URL.createObjectURL(file);
+                                });
+                            });
+                            
+                            Promise.all(loadImagePromises).then(images => {
+                                // Calculate layout dimensions
+                                let gridSize, imagePadding;
+                                
+                                if (imageCount === 1) {
+                                    // Single image takes full width
+                                    gridSize = 1;
+                                    imagePadding = 0;
+                                } else if (imageCount === 2) {
+                                    // 1x2 grid
+                                    gridSize = 2;
+                                    imagePadding = 4;
+                                } else {
+                                    // 2x2 grid for 3 or 4 images
+                                    gridSize = 2;
+                                    imagePadding = 4;
+                                }
+                                
+                                // Calculate cell size
+                                const cellSize = (collageSize - (imagePadding * (gridSize - 1))) / gridSize;
+                                
+                                // Draw images according to grid
+                                images.forEach((img, index) => {
+                                    // Calculate position
+                                    let row, col;
+                                    if (imageCount === 3 && index === 2) {
+                                        // For 3 images, center the last one
+                                        col = 0.5;
+                                        row = 1;
+                                    } else {
+                                        col = index % gridSize;
+                                        row = Math.floor(index / gridSize);
+                                    }
+                                    
+                                    const x = col * (cellSize + imagePadding);
+                                    const y = row * (cellSize + imagePadding);
+                                    
+                                    // Calculate dimensions to maintain aspect ratio
+                                    const aspectRatio = img.width / img.height;
+                                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                                    
+                                    if (aspectRatio > 1) {
+                                        // Landscape image
+                                        drawHeight = cellSize;
+                                        drawWidth = drawHeight * aspectRatio;
+                                        offsetX = -(drawWidth - cellSize) / 2;
+                                    } else {
+                                        // Portrait or square image
+                                        drawWidth = cellSize;
+                                        drawHeight = drawWidth / aspectRatio;
+                                        offsetY = -(drawHeight - cellSize) / 2;
+                                    }
+                                    
+                                    // Draw image centered in cell
+                                    ctx.drawImage(img, x + offsetX, y + offsetY, drawWidth, drawHeight);
+                                    
+                                    // Draw cell border
+                                    ctx.strokeStyle = '#FFFFFF';
+                                    ctx.lineWidth = imagePadding;
+                                    ctx.strokeRect(x, y, cellSize, cellSize);
+                                    
+                                    // Release object URL
+                                    URL.revokeObjectURL(img.src);
+                                });
+                                
+                                // Draw a divider line
+                                ctx.strokeStyle = '#E5E7EB';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(padding, collageSize + padding / 2);
+                                ctx.lineTo(canvas.width - padding, collageSize + padding / 2);
+                                ctx.stroke();
+                                
+                                // Add ImaKOL logo/brand - increased font size by 30%
+                                ctx.fillStyle = '#E9756B';
+                                ctx.font = 'bold 21px sans-serif'; // Increased from 16px to 21px (30% larger)
+                                ctx.fillText('ImaKOL', padding, collageSize + padding * 1.5);
+                                
+                                // Configure text styling for caption - increased font size by 30%
+                                ctx.fillStyle = '#333333';
+                                ctx.font = '21px sans-serif'; // Increased from 16px to 21px (30% larger)
+                                
+                                // Handle text wrapping for caption
+                                const maxWidth = canvas.width - (padding * 2);
+                                const words = caption.split(' ');
+                                let line = '';
+                                let y = collageSize + padding * 2.5;
+                                const lineHeight = 28; // Increased from 22px to 28px (30% larger)
+                                
+                                // Draw caption with word wrapping
+                                for (let i = 0; i < words.length; i++) {
+                                    const testLine = line + words[i] + ' ';
+                                    const metrics = ctx.measureText(testLine);
+                                    
+                                    if (metrics.width > maxWidth && i > 0) {
+                                        ctx.fillText(line, padding, y);
+                                        line = words[i] + ' ';
+                                        y += lineHeight;
+                                        
+                                        // If too many lines, truncate with ellipsis
+                                        if (y > collageSize + captionHeight) {
+                                            ctx.fillText(line.slice(0, -3) + '...', padding, y - lineHeight);
+                                            break;
+                                        }
+                                    } else {
+                                        line = testLine;
+                                    }
+                                }
+                                
+                                // Draw the last line of text
+                                if (y <= collageSize + captionHeight) {
+                                    ctx.fillText(line, padding, y);
+                                }
+                                
+                                // Add watermark if there are more images than shown
+                                if (imageFiles.length > 4) {
+                                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                                    ctx.fillRect(collageSize - 120, collageSize - 40, 120, 40);
+                                    ctx.fillStyle = '#FFFFFF';
+                                    ctx.font = 'bold 21px sans-serif'; // Increased from 20px to 26px (30% larger)
+                                    ctx.fillText(`+${imageFiles.length - 4} more`, collageSize - 110, collageSize - 15);
+                                }
+                                
+                                // Convert canvas to blob
+                                canvas.toBlob((blob) => {
+                                    const fileName = `imakol_collage_${new Date().getTime()}.jpg`;
+                                    const collageFile = new File([blob], fileName, { 
+                                        type: 'image/jpeg', 
+                                        lastModified: new Date().getTime()
+                                    });
+                                    
+                                    resolve(collageFile);
+                                }, 'image/jpeg', 0.95);
+                            }).catch(error => {
+                                console.error('Error loading images for collage:', error);
+                                reject(error);
+                            });
+                            
+                        } catch (error) {
+                            console.error('Error in createImageCollage:', error);
+                            reject(error);
+                        }
+                    });
+                },
+                
                 async sharePost() {
                     try {
                         // Check if Web Share API is available
                         if (navigator.share) {
                             // Basic sharing data
-                            const shareData = {
+                            let shareData = {
                                 title: 'Check out my post on ImaKOL',
-                                text: this.generatedCaption || 'I just created a new post on ImaKOL!',
-                                url: window.location.href
+                                text: this.generatedCaption || 'I just created a new post on ImaKOL!'
                             };
                             
-                            // Check if file sharing is supported
-                            if (navigator.canShare && this.selectedFiles.length > 0) {
+                            // Only add URL for non-iOS devices
+                            if (!this.isIOS()) {
+                                shareData.url = window.location.href;
+                            } else {
+                                console.log('iOS detected - omitting URL from share data');
+                            }
+                            
+                            console.log('Detected Android:', this.isAndroid());
+                            console.log('Detected iOS:', this.isIOS());
+                            
+                            // For Android devices, use the caption-embedded image approach
+                            if (this.isAndroid() && this.selectedFiles.length > 0) {
+                                try {
+                                    console.log('Using Android-specific sharing approach');
+                                    
+                                    // Get image files only
+                                    const imageFiles = this.selectedFiles.filter(file => file.type.includes('image'));
+                                    
+                                    // If no images found, use regular sharing
+                                    if (imageFiles.length === 0) {
+                                        console.log('No images found for Android sharing, using regular approach');
+                                    } else {
+                                        // Prepare shareable files
+                                        let sharableFile;
+                                        
+                                        // Create different outputs based on number of images
+                                        if (imageFiles.length === 1) {
+                                            // Single image with caption
+                                            sharableFile = await this.createCaptionedImage(
+                                                imageFiles[0], 
+                                                this.generatedCaption || 'Shared via ImaKOL'
+                                            );
+                                        } else {
+                                            // Multiple images as collage
+                                            sharableFile = await this.createImageCollage(
+                                                imageFiles,
+                                                this.generatedCaption || 'Shared via ImaKOL'
+                                            );
+                                        }
+                                        
+                                        // Check if we successfully created the file
+                                        if (sharableFile) {
+                                            // For Android, we send just the captioned image file
+                                            // and minimal or no text to avoid compatibility issues
+                                            shareData = {
+                                                title: 'ImaKOL Post',
+                                                files: [sharableFile]
+                                            };
+                                            
+                                            console.log('Sharing with captioned image:', sharableFile.name);
+                                        }
+                                    }
+                                } catch (prepError) {
+                                    console.error('Error preparing Android-specific sharing:', prepError);
+                                    // Fall back to regular sharing
+                                }
+                            } else if (navigator.canShare && this.selectedFiles.length > 0) {
+                                // Non-Android device with file sharing support
                                 try {
                                     // Try to share all files if possible
                                     const allFilesData = {
@@ -1283,9 +1634,6 @@
                                 }
                             }
                             
-                            // Create a fallback blob URL for file download if needed
-                            let fallbackURL = null;
-                            
                             // Perform the actual sharing
                             try {
                                 await navigator.share(shareData);
@@ -1293,17 +1641,23 @@
                             } catch (shareError) {
                                 console.error('Initial share attempt failed:', shareError);
                                 
-                                // If sharing with files failed, create a fallback with a downloadable blob
-                                if (shareData.files && shareData.files.length > 0 && this.generatedCaption) {
+                                // If sharing failed and we didn't use the Android approach already
+                                if (shareData.files && !this.isAndroid() && this.generatedCaption) {
                                     try {
-                                        // Try again with just text and a special format that includes caption
-                                        const enhancedText = `${this.generatedCaption}\n\nShared via ImaKOL: ${window.location.href}`;
+                                        // Try again with just text, respecting iOS URL preference
+                                        const enhancedText = `${this.generatedCaption}\n\nShared via ImaKOL${!this.isIOS() ? ': ' + window.location.href : ''}`;
                                         
-                                        await navigator.share({
+                                        const retryShareData = {
                                             title: 'Check out my post on ImaKOL',
-                                            text: enhancedText,
-                                            url: window.location.href
-                                        });
+                                            text: enhancedText
+                                        };
+                                        
+                                        // Only add URL for non-iOS
+                                        if (!this.isIOS()) {
+                                            retryShareData.url = window.location.href;
+                                        }
+                                        
+                                        await navigator.share(retryShareData);
                                         
                                         console.log('Shared with enhanced text format');
                                     } catch (textShareError) {
@@ -1321,6 +1675,11 @@
                             
                             await navigator.clipboard.writeText(clipboardText);
                             alert('Sharing is not supported on this browser. The caption and a link to your post have been copied to your clipboard.');
+                            
+                            // Offer to download image
+                            if (this.selectedFiles.length > 0 && confirm('Would you like to download your media?')) {
+                                this.downloadMedia();
+                            }
                         } else {
                             alert('Sharing is not supported on this browser.');
                         }
@@ -1332,35 +1691,38 @@
                             console.log('Share operation cancelled by user');
                         } else if (error.name === 'NotAllowedError') {
                             alert('Permission to share was denied');
-                        } else if (error.name === 'DataError' || error.name === 'TypeError') {
-                            // Try one more time - text only with enhanced caption format
-                            try {
-                                if (navigator.share) {
-                                    const enhancedText = this.generatedCaption 
-                                        ? `${this.generatedCaption}\n\nShared via ImaKOL: ${window.location.href}`
-                                        : 'I just created a new post on ImaKOL!';
-                                    
-                                    await navigator.share({
-                                        title: 'Check out my post on ImaKOL',
-                                        text: enhancedText,
-                                        url: window.location.href
-                                    });
-                                    console.log('Content shared successfully with text only');
-                                    
-                                    // Inform user that the media couldn't be shared
-                                    setTimeout(() => {
-                                        alert('Your caption was shared but the media files could not be included due to browser limitations.');
-                                    }, 1000);
-                                }
-                            } catch (retryError) {
-                                alert('Could not share your post. You may need to save the media files manually.');
-                            }
                         } else {
                             alert('Could not share your post. You may need to save the media files manually.');
+                            
+                            // Offer to download the media files
+                            if (confirm('Would you like to download your media files?')) {
+                                this.downloadMedia();
+                            }
                         }
                     }
+                },
+                
+                // Add method to download media files directly
+                downloadMedia() {
+                    if (this.selectedFiles.length === 0) {
+                        alert('No media files to download');
+                        return;
+                    }
+                    
+                    this.selectedFiles.forEach((file, index) => {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(file);
+                        link.download = file.name || `imakol-media-${index + 1}.${file.name.split('.').pop() || 'jpg'}`;
+                        document.body.appendChild(link);
+                        link.click();
+                        
+                        setTimeout(() => {
+                            URL.revokeObjectURL(link.href);
+                            document.body.removeChild(link);
+                        }, 100);
+                    });
                 }
-            };
+            }
         }
     </script>
 </body>

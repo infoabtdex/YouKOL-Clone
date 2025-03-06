@@ -33,13 +33,16 @@
     <!-- Environment variables are now defined inline in the script section below -->
     
     <style>
-        body {
+        html, body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
+            height: 100%;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
             overscroll-behavior: none;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-            background-color: #F9FAFB;
+            background-color: var(--bg-light);
         }
         
         /* Theme colors defined as CSS variables for consistency */
@@ -58,6 +61,18 @@
             --bg-white: #FFFFFF;
             --border-color: #E5E7EB;
             --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+            --vh: 1vh; /* Default value, will be updated by JS */
+        }
+        
+        #app {
+            min-height: 100vh; /* Fallback for browsers that do not support custom properties */
+            min-height: calc(var(--vh, 1vh) * 100);
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            width: 100%;
+            overflow-x: hidden;
         }
         
         .capture-btn {
@@ -129,6 +144,7 @@
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 8px;
             width: 100%;
+            background-color: var(--bg-white);
         }
         
         .media-grid-item {
@@ -144,6 +160,36 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+        
+        /* Content containers */
+        .content-wrapper {
+            width: 100%;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--bg-light);
+            flex: 1 1 auto;
+        }
+        
+        /* Full height container for main views */
+        .view-container {
+            min-height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-light);
+        }
+        
+        /* Fixed background for footer */
+        .footer-container {
+            width: 100%;
+            background-color: var(--bg-light);
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
         }
         
         /* Improved scrolling experience */
@@ -353,8 +399,8 @@
         }
     </style>
 </head>
-<body class="bg-white">
-    <div id="app" x-data="appState()" x-init="await initApp()" class="flex flex-col items-center justify-between h-screen p-4">
+<body class="bg-[#F9FAFB]">
+    <div id="app" x-data="appState()" x-init="await initApp()" class="flex flex-col items-center justify-between min-h-screen p-4 bg-[#F9FAFB] overflow-x-hidden">
         <!-- Header -->
         <div class="w-full flex flex-col items-center justify-center pt-16 pb-8">
             <div class="flex items-center mb-3">
@@ -370,7 +416,7 @@
         </div>
         
         <!-- Main Content -->
-        <div class="w-full flex-grow flex flex-col justify-center items-center">
+        <div class="w-full flex-grow flex flex-col justify-center items-center pb-16">
             <!-- Initial State -->
             <div x-show="currentState === 'initial'" class="w-full flex flex-col space-y-4 items-center">
                 <button 
@@ -545,7 +591,7 @@
         </div>
         
         <!-- Footer / Capture Button -->
-        <div x-show="currentState === 'initial'" class="w-full pb-6 flex justify-center">
+        <div x-show="currentState === 'initial'" class="footer-container flex justify-center py-4">
             <button 
                 @click="captureMedia()" 
                 class="float-capture-btn rounded-full p-4 text-white shadow-lg transform hover:scale-110 transition-transform duration-200"
@@ -619,6 +665,33 @@
         
         console.log('Environment variables loaded successfully');
         
+        // Mobile viewport height fix
+        function setMobileViewportHeight() {
+            // First we get the viewport height and multiply it by 1% to get a value for a vh unit
+            let vh = window.innerHeight * 0.01;
+            // Then we set the value in the --vh custom property to the root of the document
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Apply the height to the app container
+            const appElement = document.getElementById('app');
+            if (appElement) {
+                appElement.style.minHeight = `calc(100 * var(--vh))`;
+            }
+        }
+        
+        // Initialize viewport height
+        setMobileViewportHeight();
+        
+        // Update on resize
+        window.addEventListener('resize', () => {
+            setMobileViewportHeight();
+        });
+        
+        // Update on orientation change
+        window.addEventListener('orientationchange', () => {
+            setMobileViewportHeight();
+        });
+        
         async function initApp() {
             // Environment variables are now directly initialized above
             if (!window.ENV || !window.ENV.XAI_API_KEY) {
@@ -626,6 +699,9 @@
             } else {
                 console.log('App initialized with environment variables');
             }
+            
+            // Ensure we have the correct background color
+            document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-light');
         }
         
         function appState() {

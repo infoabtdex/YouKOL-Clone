@@ -9,27 +9,89 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.3/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Configuring Tailwind for custom colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E9756B',
+                        'primary-light': '#FFF1F0',
+                        'primary-medium': 'rgba(233, 117, 107, 0.2)',
+                        secondary: '#5C7AEA',
+                        'text-dark': '#333333',
+                        'bg-light': '#F9FAFB'
+                    }
+                }
+            }
+        }
+    </script>
+    
     <!-- Alpine.js via CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <!-- Environment variables are now defined inline in the script section below -->
     
     <style>
-        body {
+        html, body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
+            height: 100%;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
             overscroll-behavior: none;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            background-color: var(--bg-light);
+        }
+        
+        /* Theme colors defined as CSS variables for consistency */
+        :root {
+            --primary-color: #E9756B;
+            --primary-light: rgba(233, 117, 107, 0.1);
+            --primary-medium: rgba(233, 117, 107, 0.4);
+            --primary-gradient: linear-gradient(135deg, #E9756B, #F19A94);
+            --secondary-color: #5C7AEA;
+            --secondary-light: rgba(92, 122, 234, 0.1);
+            --accent-color: #48BB78;
+            --accent-light: rgba(72, 187, 120, 0.1);
+            --text-dark: #333333;
+            --text-light: #6B7280;
+            --bg-light: #F9FAFB;
+            --bg-white: #FFFFFF;
+            --border-color: #E5E7EB;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+            --vh: 1vh; /* Default value, will be updated by JS */
+        }
+        
+        #app {
+            min-height: 100vh; /* Fallback for browsers that do not support custom properties */
+            min-height: calc(var(--vh, 1vh) * 100);
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            width: 100%;
+            overflow-x: hidden;
         }
         
         .capture-btn {
-            background-color: #E9756B;
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px var(--primary-medium);
+            transform: translateY(0);
+            transition: all 0.2s ease;
+        }
+        
+        .capture-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--primary-medium);
         }
         
         .upload-btn {
-            background-color: white;
-            color: #333;
-            border: 1px solid #E5E7EB;
+            background-color: var(--bg-white);
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
         .logo-text {
@@ -37,32 +99,139 @@
         }
         
         .logo-text span {
-            color: #E9756B;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
         }
         
         .float-capture-btn {
-            background-color: #E9756B;
-            box-shadow: 0 4px 12px rgba(233, 117, 107, 0.4);
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px var(--primary-medium);
         }
         
+        /* Smooth transitions for all interactive elements */
+        button, .camera-button, .camera-option, .preview-item {
+            transition: all 0.2s ease;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        /* Cards and containers with subtle shadows */
+        .app-card {
+            background-color: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+        
+        /* Improved responsiveness for preview items */
         .preview-item {
             width: 100px;
             height: 100px;
             object-fit: cover;
             border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
-        /* Hide scrollbar for Chrome, Safari and Opera */
+        /* Media preview grid with better responsiveness */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px;
+            width: 100%;
+            background-color: var(--bg-white);
+        }
+        
+        .media-grid-item {
+            aspect-ratio: 1/1;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .media-grid-item img,
+        .media-grid-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Content containers */
+        .content-wrapper {
+            width: 100%;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--bg-light);
+            flex: 1 1 auto;
+        }
+        
+        /* Full height container for main views */
+        .view-container {
+            min-height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-light);
+        }
+        
+        /* Fixed background for footer */
+        .footer-container {
+            width: 100%;
+            background-color: var(--bg-light);
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        
+        /* Improved scrolling experience */
+        .preview-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        
         .preview-container::-webkit-scrollbar {
             display: none;
         }
         
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .preview-container {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+        /* Caption box styling */
+        .caption-box {
+            background-color: var(--primary-light);
+            border: 1px solid rgba(233, 117, 107, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.2s ease;
         }
         
+        .caption-box:focus-within {
+            box-shadow: 0 0 0 2px rgba(233, 117, 107, 0.3);
+        }
+        
+        .caption-textarea {
+            width: 100%;
+            border: none;
+            background-color: transparent;
+            resize: none;
+            outline: none;
+            font-size: 16px;
+            color: var(--text-dark);
+        }
+        
+        .caption-textarea::placeholder {
+            color: rgba(107, 114, 128, 0.7);
+        }
+        
+        /* Better camera UI */
         .camera-container {
             position: fixed;
             top: 0;
@@ -92,6 +261,7 @@
             justify-content: space-around;
             align-items: center;
             background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            padding-bottom: env(safe-area-inset-bottom, 20px); /* iOS notch support */
         }
         
         .camera-button {
@@ -103,13 +273,15 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         
         .camera-button-inner {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            border: 3px solid #E9756B;
+            border: 3px solid var(--primary-color);
         }
         
         .camera-option {
@@ -121,6 +293,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            backdrop-filter: blur(4px);
         }
         
         .camera-option svg {
@@ -141,21 +314,109 @@
             background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
             z-index: 1001;
         }
+        
+        /* Post container styling */
+        .post-container {
+            background-color: var(--bg-white);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .action-button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .primary-button {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 6px rgba(233, 117, 107, 0.25);
+        }
+        
+        .secondary-button {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+        }
+        
+        /* Loading indicator */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-light);
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Additional safe area support for iOS */
+        @supports (padding: max(0px)) {
+            .camera-controls {
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
+            }
+            
+            .camera-top-controls {
+                padding-top: max(20px, env(safe-area-inset-top));
+            }
+        }
+        
+        /* Button hover effects (only on desktop) */
+        @media (hover: hover) {
+            button:hover:not(:disabled) {
+                opacity: 0.9;
+            }
+            
+            .camera-button:hover {
+                transform: scale(1.05);
+            }
+            
+            .camera-option:hover {
+                background-color: rgba(255, 255, 255, 0.4);
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .media-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+            
+            .app-card {
+                border-radius: 12px;
+                margin-bottom: 16px;
+            }
+        }
     </style>
 </head>
-<body class="bg-white">
-    <div id="app" x-data="appState()" x-init="await initApp()" class="flex flex-col items-center justify-between h-screen p-4">
+<body class="bg-[#F9FAFB]">
+    <div id="app" x-data="appState()" x-init="await initApp()" class="flex flex-col items-center justify-between min-h-screen p-4 bg-[#F9FAFB] overflow-x-hidden">
         <!-- Header -->
         <div class="w-full flex flex-col items-center justify-center pt-16 pb-8">
-            <div class="flex items-center mb-2">
-                <div class="w-8 h-8 rounded-full bg-[#E9756B] mr-2"></div>
+            <div class="flex items-center mb-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-[#F19A94] shadow-sm flex items-center justify-center mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
                 <h1 class="logo-text text-2xl">Ima<span>KOL</span></h1>
             </div>
-            <p class="text-gray-700 text-center">Capture and share your moments</p>
+            <p class="text-gray-600 text-center">Capture and share your moments</p>
         </div>
         
         <!-- Main Content -->
-        <div class="w-full flex-grow flex flex-col justify-center items-center">
+        <div class="w-full flex-grow flex flex-col justify-center items-center pb-16">
             <!-- Initial State -->
             <div x-show="currentState === 'initial'" class="w-full flex flex-col space-y-4 items-center">
                 <button 
@@ -189,164 +450,153 @@
             </div>
             
             <!-- Upload Preview State -->
-            <div x-show="currentState === 'preview'" class="w-full flex flex-col space-y-4 items-center">
-                <div class="w-full flex flex-col items-center">
-                    <h2 class="text-lg font-semibold mb-2">Preview</h2>
+            <div x-show="currentState === 'preview'" class="w-full flex flex-col space-y-4 items-center max-w-lg mx-auto">
+                <div class="app-card w-full p-4">
+                    <h2 class="text-lg font-semibold mb-4 text-center">Preview</h2>
                     
                     <!-- Media Preview -->
-                    <div class="preview-container w-full flex overflow-x-auto py-2 space-x-2">
+                    <div class="media-grid mb-4">
                         <template x-for="(file, index) in selectedFiles" :key="index">
-                            <div class="relative">
+                            <div class="media-grid-item">
                                 <template x-if="file.type.includes('image')">
-                                    <img :src="URL.createObjectURL(file)" class="preview-item" alt="Preview">
+                                    <img :src="URL.createObjectURL(file)" alt="Preview">
                                 </template>
                                 <template x-if="file.type.includes('video')">
-                                    <video class="preview-item" controls>
+                                    <video controls>
                                         <source :src="URL.createObjectURL(file)" :type="file.type">
                                         Your browser does not support the video tag.
                                     </video>
                                 </template>
                                 <button 
                                     @click="removeFile(index)" 
-                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md"
                                 >
                                     ×
                                 </button>
                             </div>
                         </template>
                     </div>
-                </div>
-                
-                <div class="flex space-x-3">
-                    <button 
-                        @click="currentState = 'initial'; selectedFiles = []" 
-                        class="border border-gray-300 rounded-lg px-4 py-2"
+                    
+                    <div class="flex space-x-3 justify-center mt-6">
+                        <button 
+                            @click="currentState = 'initial'; selectedFiles = []" 
+                            class="action-button secondary-button"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            @click="processPost()" 
+                            class="action-button primary-button"
+                        >
+                            Create Post
+                        </button>
+                    </div>
+                    
+                    <label 
+                        for="add-more-files" 
+                        class="flex items-center justify-center cursor-pointer mt-4 text-secondary-color font-medium"
                     >
-                        Cancel
-                    </button>
-                    <button 
-                        @click="processPost()" 
-                        class="bg-[#E9756B] text-white rounded-lg px-4 py-2"
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add More
+                    </label>
+                    <input 
+                        id="add-more-files" 
+                        type="file" 
+                        accept="image/*,video/*" 
+                        multiple 
+                        class="hidden" 
+                        @change="addMoreFiles($event)"
                     >
-                        Create Post
-                    </button>
                 </div>
-                
-                <label 
-                    for="add-more-files" 
-                    class="text-[#E9756B] flex items-center cursor-pointer"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add More
-                </label>
-                <input 
-                    id="add-more-files" 
-                    type="file" 
-                    accept="image/*,video/*" 
-                    multiple 
-                    class="hidden" 
-                    @change="addMoreFiles($event)"
-                >
             </div>
             
             <!-- Processing State -->
             <div x-show="currentState === 'processing'" class="flex flex-col items-center justify-center">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E9756B]"></div>
+                <div class="loading-spinner"></div>
                 <p class="mt-4 text-gray-600">Creating your post...</p>
             </div>
             
             <!-- Post Complete State -->
-            <div x-show="currentState === 'complete'" class="w-full flex flex-col items-center space-y-4">
-                <div class="bg-gray-100 rounded-lg p-4 w-full max-w-md">
-                    <div class="flex items-center mb-3">
-                        <div class="w-8 h-8 rounded-full bg-[#E9756B] mr-2"></div>
+            <div x-show="currentState === 'complete'" class="w-full flex flex-col items-center space-y-4 max-w-lg mx-auto">
+                <div class="post-container p-4">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-[#F19A94] mr-3 shadow-sm"></div>
                         <div>
-                            <p class="font-semibold">You</p>
+                            <p class="font-semibold text-[#333]">You</p>
                             <p class="text-xs text-gray-500">Just now</p>
                         </div>
                     </div>
                     
-                    <div class="preview-container grid grid-cols-2 gap-2 mb-3">
+                    <div class="media-grid mb-4">
                         <template x-for="(url, index) in postMediaUrls" :key="index">
-                            <template x-if="url.type.includes('image')">
-                                <img :src="url.src" class="rounded-lg object-cover w-full aspect-square" alt="Post image">
-                            </template>
-                            <template x-if="url.type.includes('video')">
-                                <video class="rounded-lg object-cover w-full aspect-square" controls>
-                                    <source :src="url.src" :type="url.type">
-                                    Your browser does not support the video tag.
-                                </video>
-                            </template>
+                            <div class="media-grid-item">
+                                <template x-if="url.type.includes('image')">
+                                    <img :src="url.src" alt="Post image">
+                                </template>
+                                <template x-if="url.type.includes('video')">
+                                    <video controls>
+                                        <source :src="url.src" :type="url.type">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </template>
+                            </div>
                         </template>
                     </div>
                     
                     <!-- Generated Caption -->
-                    <div class="mb-3">
-                        <div class="flex items-center mb-1">
-                            <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full mr-2">Grok 2 Vision</span>
-                            <button @click="generateCaptionWithGrok()" class="text-xs text-[#E9756B]">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="mb-4">
+                        <div class="flex items-center mb-2">
+                            <span class="text-xs bg-[#F3F4F6] text-gray-700 px-2 py-1 rounded-full mr-2">Grok 2 Vision</span>
+                            <button @click="generateCaptionWithGrok()" class="text-xs text-[#5C7AEA] flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
                                 Regenerate
                             </button>
                         </div>
-                        <textarea 
-                            x-model="generatedCaption" 
-                            class="w-full p-2 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#E9756B]"
-                            rows="2"
-                            placeholder="Your caption will appear here..."
-                        ></textarea>
-                        <div x-show="generatedCaption === ''" class="text-sm text-gray-500 italic mt-1">
-                            <span class="animate-pulse">Caption is being generated...</span>
+                        <div class="caption-box">
+                            <textarea 
+                                x-model="generatedCaption" 
+                                class="caption-textarea"
+                                rows="3"
+                                placeholder="Your caption will appear here..."
+                            ></textarea>
+                        </div>
+                        <div x-show="generatedCaption === ''" class="text-sm text-gray-500 italic mt-1 flex items-center">
+                            <div class="w-3 h-3 bg-[#E9756B] rounded-full animate-pulse mr-2"></div>
+                            <span>Caption is being generated...</span>
                         </div>
                     </div>
                     
-                    <div class="flex justify-between">
-                        <button class="text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                        </button>
-                        <button class="text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                        </button>
-                        <button @click="sharePost()" class="text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <!-- Share button -->
+                    <div class="flex justify-center mt-6">
+                        <button @click="sharePost()" class="action-button primary-button flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                             </svg>
+                            Share
                         </button>
                     </div>
                 </div>
                 
-                <div class="flex space-x-3">
-                    <button 
-                        @click="currentState = 'initial'; selectedFiles = []; postMediaUrls = []" 
-                        class="bg-gray-100 text-gray-700 rounded-lg px-4 py-2"
-                    >
-                        New Post
-                    </button>
-                    <button 
-                        @click="sharePost()" 
-                        class="bg-[#E9756B] text-white rounded-lg px-4 py-2"
-                    >
-                        Share
-                    </button>
-                </div>
+                <button 
+                    @click="currentState = 'initial'; selectedFiles = []; postMediaUrls = []" 
+                    class="action-button secondary-button"
+                >
+                    New Post
+                </button>
             </div>
         </div>
         
         <!-- Footer / Capture Button -->
-        <div x-show="currentState === 'initial'" class="w-full pb-6 flex justify-center">
+        <div x-show="currentState === 'initial'" class="footer-container flex justify-center py-4">
             <button 
                 @click="captureMedia()" 
-                class="float-capture-btn rounded-full p-4 text-white"
+                class="float-capture-btn rounded-full p-4 text-white shadow-lg transform hover:scale-110 transition-transform duration-200"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -356,12 +606,12 @@
         <!-- Camera Interface -->
         <div x-show="cameraActive" class="camera-container">
             <div class="camera-top-controls">
-                <button @click="closeCamera()" class="text-white">
+                <button @click="closeCamera()" class="text-white p-2 rounded-full bg-black bg-opacity-30 backdrop-blur-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-                <button @click="toggleFlash()" class="text-white">
+                <button @click="toggleFlash()" class="text-white p-2 rounded-full bg-black bg-opacity-30 backdrop-blur-sm">
                     <svg x-show="!flashActive" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -391,6 +641,12 @@
                     </svg>
                 </div>
             </div>
+            
+            <!-- Recording indicator -->
+            <div x-show="isRecording" class="absolute top-4 right-4 flex items-center bg-black bg-opacity-50 rounded-full px-3 py-1">
+                <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                <span class="text-white text-xs">REC</span>
+            </div>
         </div>
     </div>
     
@@ -409,6 +665,33 @@
         
         console.log('Environment variables loaded successfully');
         
+        // Mobile viewport height fix
+        function setMobileViewportHeight() {
+            // First we get the viewport height and multiply it by 1% to get a value for a vh unit
+            let vh = window.innerHeight * 0.01;
+            // Then we set the value in the --vh custom property to the root of the document
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Apply the height to the app container
+            const appElement = document.getElementById('app');
+            if (appElement) {
+                appElement.style.minHeight = `calc(100 * var(--vh))`;
+            }
+        }
+        
+        // Initialize viewport height
+        setMobileViewportHeight();
+        
+        // Update on resize
+        window.addEventListener('resize', () => {
+            setMobileViewportHeight();
+        });
+        
+        // Update on orientation change
+        window.addEventListener('orientationchange', () => {
+            setMobileViewportHeight();
+        });
+        
         async function initApp() {
             // Environment variables are now directly initialized above
             if (!window.ENV || !window.ENV.XAI_API_KEY) {
@@ -416,6 +699,9 @@
             } else {
                 console.log('App initialized with environment variables');
             }
+            
+            // Ensure we have the correct background color
+            document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-light');
         }
         
         function appState() {

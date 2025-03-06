@@ -12,6 +12,8 @@
     <!-- Alpine.js via CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
+    <!-- Environment variables are now defined inline in the script section below -->
+    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -142,7 +144,7 @@
     </style>
 </head>
 <body class="bg-white">
-    <div x-data="appState()" class="flex flex-col items-center justify-between h-screen p-4">
+    <div id="app" x-data="appState()" x-init="await initApp()" class="flex flex-col items-center justify-between h-screen p-4">
         <!-- Header -->
         <div class="w-full flex flex-col items-center justify-center pt-16 pb-8">
             <div class="flex items-center mb-2">
@@ -280,6 +282,28 @@
                         </template>
                     </div>
                     
+                    <!-- Generated Caption -->
+                    <div class="mb-3">
+                        <div class="flex items-center mb-1">
+                            <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full mr-2">Grok 2 Vision</span>
+                            <button @click="generateCaptionWithGrok()" class="text-xs text-[#E9756B]">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Regenerate
+                            </button>
+                        </div>
+                        <textarea 
+                            x-model="generatedCaption" 
+                            class="w-full p-2 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#E9756B]"
+                            rows="2"
+                            placeholder="Your caption will appear here..."
+                        ></textarea>
+                        <div x-show="generatedCaption === ''" class="text-sm text-gray-500 italic mt-1">
+                            <span class="animate-pulse">Caption is being generated...</span>
+                        </div>
+                    </div>
+                    
                     <div class="flex justify-between">
                         <button class="text-gray-500">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -371,6 +395,29 @@
     </div>
     
     <script>
+        // Environment Variables for ImaKOL
+        // 
+        // This code provides environment variables in a browser-accessible way.
+        // In a production environment, this would be handled by server-side code or environment
+        // injection during the build process for better security.
+        
+        // Initialize environment variables container
+        window.ENV = window.ENV || {};
+        
+        // Set the API key directly
+        window.ENV.XAI_API_KEY = "xai-bNdcB9vLeicNoDwv8obQhn71ZKP3p7W39oeEeDZFWmhzASEFnjdvVz6C1HYzQns20Ct7R1DeZRk70M1F";
+        
+        console.log('Environment variables loaded successfully');
+        
+        async function initApp() {
+            // Environment variables are now directly initialized above
+            if (!window.ENV || !window.ENV.XAI_API_KEY) {
+                console.warn('Environment variables may not be properly loaded');
+            } else {
+                console.log('App initialized with environment variables');
+            }
+        }
+        
         function appState() {
             return {
                 currentState: 'initial', // initial, preview, processing, complete
@@ -385,6 +432,7 @@
                 mediaRecorder: null,
                 recordedChunks: [],
                 capturedImage: null,
+                generatedCaption: '',
                 
                 async captureMedia() {
                     try {
@@ -634,18 +682,170 @@
                 processPost() {
                     this.currentState = 'processing';
                     
-                    // Process the files - in a real app, you might upload to a server
-                    // For this example, we'll simulate processing with a timeout
-                    setTimeout(() => {
-                        // Convert selected files to viewable URLs and prepare for sharing
-                        this.postMediaUrls = this.selectedFiles.map(file => ({
-                            src: URL.createObjectURL(file),
-                            type: file.type,
-                            file: file // Keep reference to original file for sharing
-                        }));
-                        
+                    // Convert selected files to viewable URLs and prepare for sharing
+                    this.postMediaUrls = this.selectedFiles.map(file => ({
+                        src: URL.createObjectURL(file),
+                        type: file.type,
+                        file: file // Keep reference to original file for sharing
+                    }));
+                    
+                    // Set initial empty caption to show loading indicator
+                    this.generatedCaption = '';
+                    
+                    // Generate caption using Grok API
+                    this.generateCaptionWithGrok().then(() => {
                         this.currentState = 'complete';
-                    }, 1500);
+                    }).catch(error => {
+                        console.error('Error generating caption:', error);
+                        // If caption wasn't set by the error handler, set a fallback message
+                        if (!this.generatedCaption) {
+                            this.generatedCaption = 'Add your caption here! (Grok Vision API could not generate a caption)';
+                        }
+                        this.currentState = 'complete';
+                    });
+                },
+                
+                async generateCaptionWithGrok() {
+                    try {
+                        // Get the Grok API key from the ENV
+                        const apiKey = window.ENV?.XAI_API_KEY;
+                        
+                        // Debug log to verify API key (truncated for security)
+                        if (apiKey) {
+                            const keyFirstChars = apiKey.substring(0, 8);
+                            const keyLength = apiKey.length;
+                            console.log(`API key found (${keyLength} chars): ${keyFirstChars}...`);
+                        }
+                        
+                        if (!apiKey) {
+                            console.error('Grok API key not found in environment variables');
+                            this.generatedCaption = 'Could not generate caption: API key not found. Please check console for more details.';
+                            throw new Error('API key not found');
+                        }
+                        
+                        // Reset caption while generating
+                        this.generatedCaption = '';
+                        
+                        // Prepare media files to be sent to Grok API
+                        const mediaPromises = this.selectedFiles.map(file => {
+                            return new Promise((resolve, reject) => {
+                                if (file.type.includes('image')) {
+                                    // Process image files
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                        // Get base64 data without the prefix
+                                        const base64Data = reader.result.split(',')[1];
+                                        resolve({
+                                            type: file.type,
+                                            data: base64Data
+                                        });
+                                    };
+                                    reader.onerror = reject;
+                                    reader.readAsDataURL(file);
+                                } else if (file.type.includes('video')) {
+                                    // For videos, extract the first frame as a thumbnail
+                                    const video = document.createElement('video');
+                                    video.preload = 'metadata';
+                                    
+                                    video.onloadeddata = () => {
+                                        // Create canvas and draw the first frame
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = video.videoWidth;
+                                        canvas.height = video.videoHeight;
+                                        
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                        
+                                        // Get base64 data from canvas
+                                        const base64Data = canvas.toDataURL('image/jpeg').split(',')[1];
+                                        
+                                        // Revoke object URL to free memory
+                                        URL.revokeObjectURL(video.src);
+                                        
+                                        resolve({
+                                            type: 'image/jpeg',
+                                            data: base64Data
+                                        });
+                                    };
+                                    
+                                    video.onerror = () => {
+                                        URL.revokeObjectURL(video.src);
+                                        reject(new Error('Error loading video'));
+                                    };
+                                    
+                                    // Set the video source to the file blob
+                                    video.src = URL.createObjectURL(file);
+                                } else {
+                                    reject(new Error(`Unsupported file type: ${file.type}`));
+                                }
+                            });
+                        });
+                        
+                        const mediaData = await Promise.all(mediaPromises);
+                        
+                        // Create message content with text prompt and images
+                        const messageContent = [
+                            {
+                                type: "text",
+                                text: "Generate a creative, engaging, and social media friendly caption for this post. The caption should be short but catchy, suitable for social media, and should capture the essence of the image(s)/video(s). Don't include hashtags unless they are naturally part of the caption flow."
+                            }
+                        ];
+                        
+                        // Add all images to message content
+                        mediaData.forEach(media => {
+                            messageContent.push({
+                                type: "image_url",
+                                image_url: {
+                                    url: `data:${media.type};base64,${media.data}`,
+                                    detail: "high"
+                                }
+                            });
+                        });
+                        
+                        // Create request for Grok Vision API
+                        const requestData = {
+                            model: "grok-2-vision-latest",
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: messageContent
+                                }
+                            ]
+                        };
+                        
+                        // Call Grok API with new X.AI endpoint
+                        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${apiKey}`
+                            },
+                            body: JSON.stringify(requestData)
+                        });
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error(`API request failed with status ${response.status}:`, errorText);
+                            throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+                        }
+                        
+                        const responseData = await response.json();
+                        
+                        if (!responseData.choices || !responseData.choices[0]?.message?.content) {
+                            console.error('Invalid response format from API:', responseData);
+                            throw new Error('Invalid response format from API');
+                        }
+                        
+                        this.generatedCaption = responseData.choices[0].message.content.trim();
+                        console.log('Caption generated successfully');
+                        
+                    } catch (error) {
+                        console.error('Error in generateCaptionWithGrok:', error);
+                        if (!this.generatedCaption) {
+                            this.generatedCaption = `Could not generate caption: ${error.message}`;
+                        }
+                        throw error;
+                    }
                 },
                 
                 async sharePost() {
@@ -655,7 +855,7 @@
                             // Basic sharing data
                             const shareData = {
                                 title: 'Check out my post on ImaKOL',
-                                text: 'I just created a new post on ImaKOL!',
+                                text: this.generatedCaption || 'I just created a new post on ImaKOL!',
                                 url: window.location.href
                             };
                             
@@ -710,7 +910,7 @@
                                 if (navigator.share) {
                                     await navigator.share({
                                         title: 'Check out my post on ImaKOL',
-                                        text: 'I just created a new post on ImaKOL!',
+                                        text: this.generatedCaption || 'I just created a new post on ImaKOL!',
                                         url: window.location.href
                                     });
                                     console.log('Content shared successfully without files');

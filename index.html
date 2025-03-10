@@ -397,6 +397,241 @@
                 margin-bottom: 16px;
             }
         }
+        
+        /* Image Enhancement Styling */
+        .enhance-toggle {
+            display: flex;
+            align-items: center;
+            background-color: rgba(92, 122, 234, 0.1);
+            border-radius: 12px;
+            padding: 8px 12px;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
+            border: 1px solid rgba(92, 122, 234, 0.2);
+        }
+        
+        .enhance-toggle:hover {
+            background-color: rgba(92, 122, 234, 0.15);
+        }
+        
+        .enhance-toggle-label {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+        
+        .enhance-badge {
+            background-color: var(--secondary-color);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        
+        .enhance-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+        
+        .enhance-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .enhance-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        
+        .enhance-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .enhance-slider {
+            background-color: var(--secondary-color);
+        }
+        
+        input:checked + .enhance-slider:before {
+            transform: translateX(16px);
+        }
+        
+        .enhance-preview {
+            position: relative;
+            margin-top: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .enhance-badge-corner {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        
+        .comparison-slider {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background-color: white;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .comparison-handle {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: white;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 6;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .comparison-handle::before,
+        .comparison-handle::after {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 2px;
+            background-color: var(--secondary-color);
+        }
+        
+        .comparison-handle::before {
+            transform: rotate(45deg);
+        }
+        
+        .comparison-handle::after {
+            transform: rotate(-45deg);
+        }
+        
+        /* Enhanced media items styling */
+        .media-grid-item-enhanced {
+            border: 2px solid var(--secondary-color);
+            box-shadow: 0 4px 10px rgba(92, 122, 234, 0.2);
+        }
+        
+        /* Fullscreen viewer styling */
+        .fullscreen-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .fullscreen-image {
+            max-width: 95%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .fullscreen-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+        }
+        
+        .fullscreen-close:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .fullscreen-close svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+        
+        .fullscreen-info {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 14px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .image-zoom-icon {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .media-grid-item:hover .image-zoom-icon {
+            opacity: 1;
+        }
+        
+        .image-zoom-icon svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-[#F9FAFB]">
@@ -454,12 +689,104 @@
                 <div class="app-card w-full p-4">
                     <h2 class="text-lg font-semibold mb-4 text-center">Preview</h2>
                     
+                    <!-- Image Enhancement Button - Only show if there are images -->
+                    <div 
+                        x-show="selectedFiles.some(file => file.type.includes('image'))" 
+                        class="mb-4"
+                    >
+                        <button 
+                            @click="enhanceImages()" 
+                            class="w-full flex items-center justify-center bg-secondary bg-opacity-10 hover:bg-opacity-20 text-secondary rounded-md py-2 px-4 transition-all duration-200 relative group"
+                            :class="{'opacity-50 cursor-not-allowed': enhancementInProgress}"
+                            :disabled="enhancementInProgress"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span x-text="enhancementInProgress ? 'Enhancing...' : 'Auto-Enhance Images with AI'"></span>
+                            
+                            <!-- Tooltip -->
+                            <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-gray-800 text-white text-xs rounded p-2 pointer-events-none shadow-lg">
+                                <div class="text-center font-semibold mb-1">Premium Auto-Enhance Features:</div>
+                                <ul class="list-disc pl-4 text-xs">
+                                    <li>Face Enhancement</li>
+                                    <li>Denoise & Deblur (v2)</li>
+                                    <li>Smart Color Correction</li>
+                                    <li>Advanced Light Balancing</li>
+                                    <li>White Balance Correction</li>
+                                    <li>Exposure Optimization</li>
+                                </ul>
+                                <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                            </div>
+                        </button>
+                        
+                        <!-- Enhancement Progress Indicator -->
+                        <div x-show="enhancementInProgress || enhancementError" class="mt-2 flex items-center justify-center">
+                            <div x-show="enhancementInProgress" class="w-4 h-4 bg-secondary rounded-full animate-pulse mr-2"></div>
+                            <div x-show="!enhancementInProgress && enhancementError && enhancementError.includes('Successfully')" class="w-4 h-4 bg-green-500 rounded-full mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div x-show="!enhancementInProgress && enhancementError && !enhancementError.includes('Successfully') && !enhancementError.includes('Enhancing')" class="w-4 h-4 bg-red-500 rounded-full mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white mx-auto my-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <span 
+                                class="text-sm" 
+                                :class="{
+                                    'text-gray-600': enhancementInProgress || enhancementError.includes('Enhancing'),
+                                    'text-green-600': !enhancementInProgress && enhancementError && enhancementError.includes('Successfully'),
+                                    'text-red-600': !enhancementInProgress && enhancementError && !enhancementError.includes('Successfully') && !enhancementError.includes('Enhancing')
+                                }"
+                                x-text="enhancementError || 'AI is enhancing your images...'"
+                            ></span>
+                        </div>
+                        
+                        <!-- Enhancement Error Message - Removed as it's now incorporated above -->
+                    </div>
+                    
+                    <!-- After Enhancement Toggle - Only show if there are enhanced images -->
+                    <div 
+                        x-show="Object.keys(enhancedImages).length > 0" 
+                        class="enhance-toggle mb-4"
+                    >
+                        <div class="enhance-toggle-label">
+                            Use AI enhanced images
+                            <span class="enhance-badge">AI</span>
+                        </div>
+                        <label class="enhance-switch">
+                            <input type="checkbox" x-model="useEnhancedImages">
+                            <span class="enhance-slider"></span>
+                        </label>
+                    </div>
+                    
                     <!-- Media Preview -->
                     <div class="media-grid mb-4">
                         <template x-for="(file, index) in selectedFiles" :key="index">
-                            <div class="media-grid-item">
+                            <div 
+                                class="media-grid-item" 
+                                :class="{'media-grid-item-enhanced': hasEnhancedVersion(file) && useEnhancedImages}"
+                                @click="if(hasEnhancedVersion(file)) { comparisonImageIndex = index; showEnhancementComparison = true; }"
+                            >
                                 <template x-if="file.type.includes('image')">
-                                    <img :src="URL.createObjectURL(file)" alt="Preview">
+                                    <div class="relative w-full h-full">
+                                        <img 
+                                            :src="URL.createObjectURL(getEnhancedVersion(file))" 
+                                            alt="Preview"
+                                            :class="{'cursor-pointer': hasEnhancedVersion(file)}"
+                                        >
+                                        <!-- Zoom icon -->
+                                        <div 
+                                            class="image-zoom-icon cursor-pointer"
+                                            @click.stop="viewImageFullscreen(getEnhancedVersion(file))"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                            </svg>
+                                        </div>
+                                    </div>
                                 </template>
                                 <template x-if="file.type.includes('video')">
                                     <video controls>
@@ -468,18 +795,99 @@
                                     </video>
                                 </template>
                                 <button 
-                                    @click="removeFile(index)" 
+                                    @click.stop="removeFile(index)" 
                                     class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md"
                                 >
                                     ×
                                 </button>
+                                
+                                <!-- "Enhanced" indicator badge -->
+                                <div 
+                                    x-show="hasEnhancedVersion(file) && useEnhancedImages" 
+                                    class="absolute bottom-2 right-2 bg-secondary text-white text-xs px-2 py-0.5 rounded-full shadow-sm"
+                                >
+                                    <span>AUTO-ENHANCED</span>
+                                </div>
                             </div>
                         </template>
                     </div>
                     
+                    <!-- Enhancement comparison modal -->
+                    <div 
+                        x-show="showEnhancementComparison" 
+                        class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+                        @click.self="showEnhancementComparison = false"
+                    >
+                        <div class="bg-white rounded-lg p-4 max-w-xl w-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold">Before & After</h3>
+                                <button 
+                                    @click="showEnhancementComparison = false"
+                                    class="text-gray-500 hover:text-gray-700"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <template x-if="comparisonImageIndex >= 0 && comparisonImageIndex < selectedFiles.length">
+                                <div>
+                                    <!-- Image comparison slider -->
+                                    <div 
+                                        class="enhance-preview relative overflow-hidden" 
+                                        style="height: 300px;"
+                                        @mousemove="handleSliderMove"
+                                        @touchmove="handleSliderMove"
+                                    >
+                                        <!-- Original image -->
+                                        <img 
+                                            :src="URL.createObjectURL(selectedFiles[comparisonImageIndex])" 
+                                            alt="Original image"
+                                            class="absolute inset-0 w-full h-full object-contain"
+                                        >
+                                        
+                                        <!-- Enhanced image with clip -->
+                                        <div class="absolute inset-0 overflow-hidden" :style="`width: ${enhancementSliderPosition}%`">
+                                            <img 
+                                                :src="URL.createObjectURL(enhancedImages[selectedFiles[comparisonImageIndex].name])" 
+                                                alt="Enhanced image"
+                                                class="absolute inset-0 w-full h-full object-contain"
+                                                style="right: 0; left: unset; min-width: 100%; min-height: 100%;"
+                                            >
+                                        </div>
+                                        
+                                        <!-- Slider -->
+                                        <div class="comparison-slider" :style="`left: ${enhancementSliderPosition}%`"></div>
+                                        <div class="comparison-handle" :style="`left: ${enhancementSliderPosition}%`"></div>
+                                        
+                                        <!-- Labels -->
+                                        <div class="enhance-badge-corner" style="left: 8px;">Original</div>
+                                        <div class="enhance-badge-corner" style="right: 8px;">Enhanced</div>
+                                    </div>
+                                    
+                                    <div class="flex justify-center space-x-4 mt-4">
+                                        <button 
+                                            @click="useEnhancedImages = true; showEnhancementComparison = false"
+                                            class="action-button primary-button"
+                                        >
+                                            Use Enhanced
+                                        </button>
+                                        <button 
+                                            @click="useEnhancedImages = false; showEnhancementComparison = false"
+                                            class="action-button secondary-button"
+                                        >
+                                            Use Original
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
                     <div class="flex space-x-3 justify-center mt-6">
                         <button 
-                            @click="currentState = 'initial'; selectedFiles = []" 
+                            @click="currentState = 'initial'; selectedFiles = []; enhancedImages = {}; enhancementError = null;" 
                             class="action-button secondary-button"
                         >
                             Cancel
@@ -531,9 +939,20 @@
                     
                     <div class="media-grid mb-4">
                         <template x-for="(url, index) in postMediaUrls" :key="index">
-                            <div class="media-grid-item">
+                            <div class="media-grid-item" :class="{'media-grid-item-enhanced': url.isEnhanced}">
                                 <template x-if="url.type.includes('image')">
-                                    <img :src="url.src" alt="Post image">
+                                    <div class="relative w-full h-full">
+                                        <img :src="url.src" alt="Post image">
+                                        <!-- Zoom icon -->
+                                        <div 
+                                            class="image-zoom-icon cursor-pointer"
+                                            @click.stop="viewImageFullscreen(url.file)"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                            </svg>
+                                        </div>
+                                    </div>
                                 </template>
                                 <template x-if="url.type.includes('video')">
                                     <video controls>
@@ -541,8 +960,34 @@
                                         Your browser does not support the video tag.
                                     </video>
                                 </template>
+                                
+                                <!-- "Enhanced" indicator badge -->
+                                <div 
+                                    x-show="url.isEnhanced" 
+                                    class="absolute bottom-2 right-2 bg-secondary text-white text-xs px-2 py-0.5 rounded-full shadow-sm"
+                                >
+                                    <span>AUTO-ENHANCED</span>
+                                </div>
                             </div>
                         </template>
+                    </div>
+                    
+                    <!-- Enhanced By DeepImage.AI Badge - Show if any images were enhanced -->
+                    <div 
+                        x-show="postMediaUrls.some(url => url.isEnhanced)" 
+                        class="mb-4 flex justify-end"
+                    >
+                        <div 
+                            class="text-xs flex items-center bg-secondary bg-opacity-10 py-1 px-2 rounded-full"
+                        >
+                            <span class="text-gray-600">Enhanced by</span>
+                            <span 
+                                class="mx-1 font-medium text-secondary"
+                            >DeepImage.AI</span>
+                            <span 
+                                class="text-white text-[10px] px-1.5 py-0.5 rounded-sm bg-secondary"
+                            >AUTO-ENHANCE</span>
+                        </div>
                     </div>
                     
                     <!-- Generated Caption -->
@@ -582,7 +1027,7 @@
                 </div>
                 
                 <button 
-                    @click="currentState = 'initial'; selectedFiles = []; postMediaUrls = []" 
+                    @click="currentState = 'initial'; selectedFiles = []; postMediaUrls = []; enhancedImages = {}; enhancementError = null;" 
                     class="action-button secondary-button"
                 >
                     New Post
@@ -648,6 +1093,32 @@
                 <span class="text-white text-xs">REC</span>
             </div>
         </div>
+        
+        <!-- Fullscreen Image Viewer -->
+        <div 
+            x-show="showFullscreen" 
+            class="fullscreen-viewer"
+            @click.self="closeFullscreen()"
+        >
+            <template x-if="fullscreenImage">
+                <div>
+                    <img 
+                        :src="URL.createObjectURL(fullscreenImage)" 
+                        alt="Fullscreen image" 
+                        class="fullscreen-image"
+                    >
+                    <div class="fullscreen-close" @click="closeFullscreen()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    <div class="fullscreen-info">
+                        <span x-text="fullscreenImage && fullscreenImage.name && fullscreenImage.name.includes('enhanced_') ? 'Enhanced Image' : 'Original Image'"></span>
+                        <span x-text="fullscreenImage ? ` • ${Math.round(fullscreenImage.size / 1024)}KB` : ''"></span>
+                    </div>
+                </div>
+            </template>
+        </div>
     </div>
     
     <script>
@@ -660,8 +1131,9 @@
         // Initialize environment variables container
         window.ENV = window.ENV || {};
         
-        // Set the API key directly
+        // Set the API keys directly
         window.ENV.XAI_API_KEY = "xai-bNdcB9vLeicNoDwv8obQhn71ZKP3p7W39oeEeDZFWmhzASEFnjdvVz6C1HYzQns20Ct7R1DeZRk70M1F";
+        window.ENV.DEEP_IMAGE_API_KEY = "1ae78530-b772-11ef-af6d-2989c59e815d";
         
         console.log('Environment variables loaded successfully');
         
@@ -695,9 +1167,15 @@
         async function initApp() {
             // Environment variables are now directly initialized above
             if (!window.ENV || !window.ENV.XAI_API_KEY) {
-                console.warn('Environment variables may not be properly loaded');
+                console.warn('Grok API key may not be properly loaded');
             } else {
-                console.log('App initialized with environment variables');
+                console.log('Grok API initialized successfully');
+            }
+            
+            if (!window.ENV || !window.ENV.DEEP_IMAGE_API_KEY) {
+                console.warn('Deep Image API key may not be properly loaded');
+            } else {
+                console.log('Deep Image API initialized successfully');
             }
             
             // Ensure we have the correct background color
@@ -719,6 +1197,17 @@
                 recordedChunks: [],
                 capturedImage: null,
                 generatedCaption: '',
+                enhancedImages: {}, // Map to store enhanced versions of images
+                enhancementInProgress: false, // Flag for enhancement processing
+                enhancementError: null, // Store any enhancement errors
+                showEnhancementComparison: false, // Flag to show before/after comparison
+                comparisonImageIndex: 0, // Current image being compared
+                useEnhancedImages: true, // Flag to use enhanced images in the final post
+                enhancementSliderPosition: 50, // Default comparison slider position (%)
+                
+                // New properties for the fullscreen image viewer
+                fullscreenImage: null, // File to be displayed in fullscreen
+                showFullscreen: false, // Whether to show the fullscreen viewer
                 
                 async captureMedia() {
                     try {
@@ -968,12 +1457,8 @@
                 processPost() {
                     this.currentState = 'processing';
                     
-                    // Convert selected files to viewable URLs and prepare for sharing
-                    this.postMediaUrls = this.selectedFiles.map(file => ({
-                        src: URL.createObjectURL(file),
-                        type: file.type,
-                        file: file // Keep reference to original file for sharing
-                    }));
+                    // Use enhanced images if available and enabled
+                    this.updatePostMediaUrls();
                     
                     // Set initial empty caption to show loading indicator
                     this.generatedCaption = '';
@@ -1721,6 +2206,279 @@
                             document.body.removeChild(link);
                         }, 100);
                     });
+                },
+                
+                async enhanceImages() {
+                    try {
+                        // Check if we have an API key
+                        const apiKey = window.ENV?.DEEP_IMAGE_API_KEY;
+                        
+                        if (!apiKey) {
+                            console.error('Deep Image API key not found in environment variables');
+                            this.enhancementError = 'API key not found. Please check console for more details.';
+                            return;
+                        }
+                        
+                        // Set enhancement in progress
+                        this.enhancementInProgress = true;
+                        this.enhancementError = null;
+                        
+                        // Filter for image files only
+                        const imageFiles = this.selectedFiles.filter(file => file.type.includes('image'));
+                        
+                        if (imageFiles.length === 0) {
+                            this.enhancementError = 'No images found to enhance.';
+                            this.enhancementInProgress = false;
+                            return;
+                        }
+                        
+                        // Show detailed progress message
+                        this.enhancementError = `Enhancing ${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''}... Please wait.`;
+                        
+                        // Process each image file
+                        for (let i = 0; i < imageFiles.length; i++) {
+                            const file = imageFiles[i];
+                            const fileName = file.name;
+                            
+                            // Update progress
+                            this.enhancementError = `Enhancing image ${i + 1} of ${imageFiles.length}...`;
+                            
+                            try {
+                                // Convert image to base64
+                                const base64Data = await this.fileToBase64(file);
+                                if (!base64Data) {
+                                    console.error(`Failed to convert image to base64: ${fileName}`);
+                                    continue;
+                                }
+                                
+                                // Call Deep Image API to enhance the image
+                                const enhancedImage = await this.callDeepImageAPI(base64Data, file);
+                                
+                                if (enhancedImage) {
+                                    // Store enhanced version in our map
+                                    this.enhancedImages[fileName] = enhancedImage;
+                                    console.log(`Successfully enhanced image: ${fileName}`);
+                                }
+                            } catch (error) {
+                                console.error(`Error enhancing image ${fileName}:`, error);
+                            }
+                        }
+                        
+                        // Check results and set success/failure message
+                        const successCount = Object.keys(this.enhancedImages).length;
+                        if (successCount === 0) {
+                            this.enhancementError = 'Failed to enhance any images. Please check console for errors.';
+                        } else if (successCount < imageFiles.length) {
+                            this.enhancementError = `Enhanced ${successCount} of ${imageFiles.length} images. Some images could not be enhanced.`;
+                        } else {
+                            this.enhancementError = `Successfully enhanced all ${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''}!`;
+                        }
+                        
+                        // Set the first enhanced image as the comparison image if available
+                        if (Object.keys(this.enhancedImages).length > 0) {
+                            const firstEnhancedFileName = Object.keys(this.enhancedImages)[0];
+                            this.comparisonImageIndex = this.selectedFiles.findIndex(
+                                file => file.name === firstEnhancedFileName
+                            );
+                            this.showEnhancementComparison = true;
+                        }
+                    } catch (error) {
+                        console.error('Error in enhanceImages function:', error);
+                        this.enhancementError = error.message || 'An unknown error occurred.';
+                    } finally {
+                        this.enhancementInProgress = false;
+                    }
+                },
+                
+                async fileToBase64(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => {
+                            // Get just the base64 data without the prefix
+                            const base64 = reader.result.split(',')[1];
+                            resolve(base64);
+                        };
+                        reader.onerror = error => reject(error);
+                    });
+                },
+                
+                async callDeepImageAPI(imageBase64, originalFile) {
+                    try {
+                        const apiKey = window.ENV.DEEP_IMAGE_API_KEY;
+                        console.log('Starting image enhancement with Deep Image API', {
+                            apiKey: apiKey ? `${apiKey.substring(0, 8)}...` : 'missing', 
+                            fileName: originalFile.name,
+                            fileType: originalFile.type,
+                            fileSize: originalFile.size
+                        });
+                        
+                        // Create a blob from the base64 data
+                        const base64WithPrefix = `data:${originalFile.type};base64,${imageBase64}`;
+                        const fetchResponse = await fetch(base64WithPrefix);
+                        const blob = await fetchResponse.blob();
+                        
+                        // Prepare the auto_enhance preset with all enhancement parameters
+                        const enhancementParams = {
+                            max_length: 4096,
+                            enhancements: [
+                                "denoise",
+                                "face_enhance",
+                                "deblur",
+                                "color",
+                                "light",
+                                "white_balance",
+                                "exposure_correction"
+                            ],
+                            light_parameters: {
+                                type: "hdr_light_advanced",
+                                level: 1
+                            },
+                            color_parameters: {
+                                type: "contrast",
+                                level: 0.5
+                            },
+                            white_balance_parameters: {
+                                level: 0.25
+                            },
+                            deblur_parameters: {
+                                type: "v2"
+                            },
+                            denoise_parameters: {
+                                type: "v2"
+                            },
+                            output_format: "jpg"
+                        };
+                        
+                        // Create FormData and append the image file
+                        const formData = new FormData();
+                        formData.append('image', blob, originalFile.name);
+                        
+                        // Append the enhancement parameters as a JSON string
+                        const paramsJson = JSON.stringify(enhancementParams);
+                        formData.append('params', new Blob([paramsJson], { type: 'application/json' }));
+                        
+                        console.log('Sending API request to Deep Image...', {
+                            endpoint: 'https://deep-image.ai/api/v1/process',
+                            enhancementParams
+                        });
+                        
+                        // Make API request to the correct endpoint
+                        const response = await fetch('https://deep-image.ai/api/v1/process', {
+                            method: 'POST',
+                            headers: {
+                                "X-API-KEY": apiKey
+                            },
+                            body: formData
+                        });
+                        
+                        console.log('API response status:', response.status, response.statusText);
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error(`API request failed with status ${response.status}:`, errorText);
+                            throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+                        }
+                        
+                        // Get enhanced image directly as blob
+                        const enhancedBlob = await response.blob();
+                        console.log('Enhanced image blob received:', {
+                            size: enhancedBlob.size,
+                            type: enhancedBlob.type
+                        });
+                        
+                        // Create a new File object with the enhanced image data
+                        const enhancedFileName = `enhanced_${originalFile.name}`;
+                        const enhancedFile = new File([enhancedBlob], enhancedFileName, { 
+                            type: "image/jpeg", 
+                            lastModified: new Date().getTime() 
+                        });
+                        
+                        console.log('Enhancement successful, created file:', enhancedFileName);
+                        return enhancedFile;
+                        
+                    } catch (error) {
+                        console.error('Error in image enhancement:', error);
+                        this.enhancementError = `Error: ${error.message}`;
+                        throw error;
+                    }
+                },
+                
+                async isPortrait(imageFile) {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            // Consider an image a portrait if it's taller than it is wide
+                            // and has reasonable portrait dimensions
+                            const isPortraitRatio = img.height > img.width;
+                            const hasPortraitDimensions = img.height / img.width > 1.2;
+                            
+                            resolve(isPortraitRatio && hasPortraitDimensions);
+                            URL.revokeObjectURL(img.src);
+                        };
+                        img.onerror = () => {
+                            resolve(false);
+                            URL.revokeObjectURL(img.src);
+                        };
+                        img.src = URL.createObjectURL(imageFile);
+                    });
+                },
+                
+                // Toggle use of enhanced images in the final post
+                toggleEnhancedImages() {
+                    this.useEnhancedImages = !this.useEnhancedImages;
+                },
+                
+                // Check if an image has an enhanced version
+                hasEnhancedVersion(file) {
+                    return file.type.includes('image') && this.enhancedImages[file.name] !== undefined;
+                },
+                
+                // Get the enhanced version of an image if it exists
+                getEnhancedVersion(file) {
+                    if (this.hasEnhancedVersion(file) && this.useEnhancedImages) {
+                        return this.enhancedImages[file.name];
+                    }
+                    return file;
+                },
+                
+                // Update the preview URLs when use of enhanced images changes
+                updatePostMediaUrls() {
+                    this.postMediaUrls = this.selectedFiles.map(file => {
+                        const fileToUse = this.hasEnhancedVersion(file) && this.useEnhancedImages 
+                            ? this.enhancedImages[file.name] 
+                            : file;
+                        
+                        return {
+                            src: URL.createObjectURL(fileToUse),
+                            type: fileToUse.type,
+                            file: fileToUse,
+                            isEnhanced: this.hasEnhancedVersion(file) && this.useEnhancedImages
+                        };
+                    });
+                },
+                
+                // Handle comparison slider movement
+                handleSliderMove(event) {
+                    const container = event.currentTarget;
+                    const rect = container.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const percentage = (x / rect.width) * 100;
+                    
+                    // Limit to 5-95% range for better UX
+                    this.enhancementSliderPosition = Math.max(5, Math.min(95, percentage));
+                },
+                
+                // Show fullscreen image viewer
+                viewImageFullscreen(file) {
+                    this.fullscreenImage = file;
+                    this.showFullscreen = true;
+                },
+                
+                // Close fullscreen image viewer
+                closeFullscreen() {
+                    this.showFullscreen = false;
+                    this.fullscreenImage = null;
                 }
             }
         }

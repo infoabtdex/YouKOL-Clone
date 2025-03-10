@@ -716,6 +716,12 @@
                                     <li>White Balance Correction</li>
                                     <li>Exposure Optimization</li>
                                 </ul>
+                                <div class="mt-2 pt-2 border-t border-gray-700 text-gray-300 text-[10px]">
+                                    <p>Using CORS proxy: <span x-text="window.ENV.USE_CORS_PROXY ? 'Yes' : 'No'"></span></p>
+                                    <p>Having API issues? Try these:</p>
+                                    <p class="pl-2"><code>window.ENV.USE_CORS_PROXY = true;</code></p>
+                                    <p class="pl-2">Visit <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" class="underline text-blue-300">cors-anywhere demo</a> for temporary access</p>
+                                </div>
                                 <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
                             </div>
                         </button>
@@ -1134,6 +1140,9 @@
         // Set the API keys directly
         window.ENV.XAI_API_KEY = "xai-bNdcB9vLeicNoDwv8obQhn71ZKP3p7W39oeEeDZFWmhzASEFnjdvVz6C1HYzQns20Ct7R1DeZRk70M1F";
         window.ENV.DEEP_IMAGE_API_KEY = "1ae78530-b772-11ef-af6d-2989c59e815d";
+        // CORS proxy setting - set to true to use CORS proxy service, false to use direct API connection
+        window.ENV.USE_CORS_PROXY = true;
+        // CORS proxy option is now fixed to option 3
         
         console.log('Environment variables loaded successfully');
         
@@ -2358,16 +2367,29 @@
                         const paramsJson = JSON.stringify(enhancementParams);
                         formData.append('params', new Blob([paramsJson], { type: 'application/json' }));
                         
+                        // API endpoint
+                        const apiEndpoint = 'https://deep-image.ai/api/v1/process';
+                        
+                        // Configure CORS proxy - only using cors-anywhere since it's the only one that works
+                        const useProxy = window.ENV.USE_CORS_PROXY === true;
+                        const targetEndpoint = useProxy ? 
+                            `https://cors-anywhere.herokuapp.com/${apiEndpoint}` : 
+                            apiEndpoint;
+                        
                         console.log('Sending API request to Deep Image...', {
-                            endpoint: 'https://deep-image.ai/api/v1/process',
-                            enhancementParams
+                            endpoint: targetEndpoint,
+                            enhancementParams,
+                            usingProxy: useProxy
                         });
                         
-                        // Make API request to the correct endpoint
-                        const response = await fetch('https://deep-image.ai/api/v1/process', {
+                        // Make API request with appropriate endpoint
+                        const response = await fetch(targetEndpoint, {
                             method: 'POST',
                             headers: {
-                                "X-API-KEY": apiKey
+                                "X-API-KEY": apiKey,
+                                // Additional headers to help with CORS issues
+                                "Origin": window.location.origin,
+                                "X-Requested-With": "XMLHttpRequest"
                             },
                             body: formData
                         });
@@ -2377,7 +2399,13 @@
                         if (!response.ok) {
                             const errorText = await response.text();
                             console.error(`API request failed with status ${response.status}:`, errorText);
-                            throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+                            
+                            // Special handling for 403 errors with cors-anywhere
+                            if (response.status === 403 && useProxy) {
+                                throw new Error(`The CORS proxy returned 403 Forbidden. You may need to visit https://cors-anywhere.herokuapp.com/corsdemo and request temporary access.`);
+                            } else {
+                                throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+                            }
                         }
                         
                         // Get enhanced image directly as blob
@@ -2399,7 +2427,19 @@
                         
                     } catch (error) {
                         console.error('Error in image enhancement:', error);
-                        this.enhancementError = `Error: ${error.message}`;
+                        
+                        // Check if it might be a CORS error
+                        const errorMessage = error.message || '';
+                        if (errorMessage.includes('Failed to fetch') || 
+                            errorMessage.includes('NetworkError') || 
+                            errorMessage.includes('CORS')) {
+                            // Provide a helpful error message specifically for CORS issues
+                            this.enhancementError = `CORS error detected. ${errorMessage}`;
+                        } else {
+                            // Generic error message for other types of errors
+                            this.enhancementError = `Error: ${errorMessage}`;
+                        }
+                        
                         throw error;
                     }
                 },

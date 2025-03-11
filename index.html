@@ -103,6 +103,58 @@
                                         Your browser does not support the video tag.
                                     </video>
                                 </template>
+                                
+                                <!-- Loading indicator for enhancement -->
+                                <div 
+                                    x-show="isEnhancing && enhancingIndex === index" 
+                                    class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+                                >
+                                    <div class="text-white text-center">
+                                        <div class="loading-spinner mx-auto"></div>
+                                        <p class="mt-2 text-sm">Enhancing...</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Image actions (remove, enhance, revert) -->
+                                <div class="absolute bottom-2 right-2 flex space-x-1">
+                                    <!-- Only show enhance button for images -->
+                                    <template x-if="file.type.includes('image')">
+                                        <div>
+                                            <!-- Enhance button -->
+                                            <button 
+                                                x-show="!hasEnhanced[index]"
+                                                @click="enhanceImage(index)" 
+                                                class="bg-secondary text-white rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md"
+                                                title="Enhance image"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                            
+                                            <!-- Revert button (show after enhancement) -->
+                                            <button 
+                                                x-show="hasEnhanced[index]"
+                                                @click="revertToOriginal(index)" 
+                                                class="bg-yellow-500 text-white rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md"
+                                                title="Revert to original"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <!-- Enhanced indicator -->
+                                <div 
+                                    x-show="hasEnhanced[index] && file.type.includes('image')" 
+                                    class="absolute top-2 left-2 bg-secondary text-white text-xs px-2 py-1 rounded-full"
+                                >
+                                    Enhanced
+                                </div>
+                                
                                 <button 
                                     @click="removeFile(index)" 
                                     class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md"
@@ -356,6 +408,12 @@
                 capturedImage: null,
                 generatedCaption: '',
                 
+                // Enhancement-related state
+                isEnhancing: false,
+                enhancingIndex: null,
+                hasEnhanced: {}, // Track which images have been enhanced
+                originalFiles: {}, // Store original files for comparison/reverting
+                
                 async captureMedia() {
                     try {
                         // Request camera permissions
@@ -608,7 +666,8 @@
                     this.postMediaUrls = this.selectedFiles.map(file => ({
                         src: URL.createObjectURL(file),
                         type: file.type,
-                        file: file // Keep reference to original file for sharing
+                        file: file, // Keep reference to original file for sharing
+                        isEnhanced: this.hasEnhanced[this.selectedFiles.indexOf(file)] || false // Track which images are enhanced
                     }));
                     
                     // Set initial empty caption to show loading indicator
@@ -1357,7 +1416,398 @@
                             document.body.removeChild(link);
                         }, 100);
                     });
-                }
+                },
+                
+                // Add these new functions for image enhancement
+                enhanceImage(index) {
+                    // Only enhance images, not videos
+                    if (!this.selectedFiles[index] || !this.canEnhance(this.selectedFiles[index])) {
+                        console.error('Cannot enhance: not a supported image or invalid index');
+                        alert('This image type cannot be enhanced. Only JPEG, PNG, and WebP formats are supported.');
+                        return;
+                    }
+                    
+                    // Set the file being enhanced
+                    this.enhancingIndex = index;
+                    this.isEnhancing = true;
+                    
+                    // Save the original file before enhancement
+                    if (!this.originalFiles[index]) {
+                        this.originalFiles[index] = this.selectedFiles[index];
+                    }
+                    
+                    // Convert the file to base64
+                    this.convertFileToBase64(this.selectedFiles[index])
+                        .then(base64Data => {
+                            // Call the Deep Image API
+                            return this.callDeepImageAPI(base64Data);
+                        })
+                        .then(enhancedImageData => {
+                            // Create a new file from the enhanced image
+                            return this.createFileFromBase64(
+                                enhancedImageData, 
+                                `enhanced_${this.selectedFiles[index].name}`,
+                                this.selectedFiles[index].type
+                            );
+                        })
+                        .then(enhancedFile => {
+                            // Replace the original image with the enhanced version
+                            const newFiles = [...this.selectedFiles];
+                            newFiles[index] = enhancedFile;
+                            this.selectedFiles = newFiles;
+                            
+                            // Update UI state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
+                            this.hasEnhanced[index] = true;
+                            
+                            console.log('Image successfully enhanced!');
+                        })
+                        .catch(error => {
+                            console.error('Image enhancement failed:', error);
+                            
+                            // Show a user-friendly error message
+                            let errorMessage = 'Image enhancement failed. Please try again.';
+                            
+                            // Check for specific error types
+                            if (error.message.includes('API request failed')) {
+                                errorMessage = 'Connection to enhancement service failed. Please check your internet connection and try again.';
+                                
+                                // Try alternative API endpoint as a fallback
+                                if (this.isEnhancing) {
+                                    this.tryAlternativeEnhancement(index);
+                                    return;
+                                }
+                            } else if (error.message.includes('exceeded')) {
+                                errorMessage = 'Enhancement limit exceeded. Please try again later.';
+                            } else if (error.message.includes('Method Not Allowed')) {
+                                errorMessage = 'API configuration issue. Trying alternative approach...';
+                                
+                                // Try alternative API endpoint as a fallback
+                                if (this.isEnhancing) {
+                                    this.tryAlternativeEnhancement(index);
+                                    return;
+                                }
+                            }
+                            
+                            alert(errorMessage);
+                            
+                            // Reset enhancement state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
+                        });
+                },
+                
+                tryAlternativeEnhancement(index) {
+                    console.log('Trying alternative enhancement API endpoint...');
+                    
+                    try {
+                        // First, try the alternative API endpoint with JSON payload
+                        this.tryJsonEnhancement(index);
+                    } catch (error) {
+                        console.error('JSON enhancement approach failed, trying FormData:', error);
+                        // If that fails, try with FormData approach (more compatible with some APIs)
+                        this.tryFormDataEnhancement(index);
+                    }
+                },
+                
+                tryJsonEnhancement(index) {
+                    // Convert the file to base64
+                    this.convertFileToBase64(this.originalFiles[index])
+                        .then(base64Data => {
+                            // Use alternative endpoint
+                            const apiKey = '1ae78530-b772-11ef-af6d-2989c59e815d';
+                            const alternativeEndpoint = 'https://deep-image.ai/rest_api/enhance-image';
+                            
+                            // Prepare the request payload for alternative endpoint
+                            const payload = {
+                                image: base64Data,
+                                options: {
+                                    preset: "auto"
+                                }
+                            };
+                            
+                            // Make the API call
+                            return fetch(alternativeEndpoint, {
+                                method: 'POST',
+                                headers: {
+                                    "Authorization": `Bearer ${apiKey}`,
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Alternative API failed: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Alternative API response:', data);
+                            
+                            // Extract the enhanced image data
+                            let enhancedData = null;
+                            
+                            if (data.enhanced_image) {
+                                enhancedData = data.enhanced_image;
+                            } else if (data.data && data.data.image) {
+                                enhancedData = data.data.image;
+                            } else {
+                                throw new Error('No enhanced image in alternative API response');
+                            }
+                            
+                            // Create a new file
+                            return this.createFileFromBase64(
+                                enhancedData,
+                                `enhanced_${this.selectedFiles[index].name}`,
+                                this.selectedFiles[index].type
+                            );
+                        })
+                        .then(enhancedFile => {
+                            // Replace the original image with the enhanced version
+                            const newFiles = [...this.selectedFiles];
+                            newFiles[index] = enhancedFile;
+                            this.selectedFiles = newFiles;
+                            
+                            // Update UI state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
+                            this.hasEnhanced[index] = true;
+                            
+                            console.log('Image enhanced using alternative method!');
+                        })
+                        .catch(error => {
+                            console.error('Alternative enhancement failed:', error);
+                            
+                            // Try the FormData approach as a last resort
+                            this.tryFormDataEnhancement(index);
+                        });
+                },
+                
+                tryFormDataEnhancement(index) {
+                    console.log('Trying FormData enhancement approach...');
+                    
+                    // Use FormData for maximum compatibility
+                    const formData = new FormData();
+                    formData.append('file', this.originalFiles[index]);
+                    formData.append('preset', 'auto_enhance');
+                    
+                    const apiKey = '1ae78530-b772-11ef-af6d-2989c59e815d';
+                    const formDataEndpoint = 'https://deep-image.ai/rest_api/process';
+                    
+                    fetch(formDataEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            "X-API-KEY": apiKey
+                            // Note: Do NOT set Content-Type header when using FormData!
+                        },
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`FormData API failed: ${response.status}`);
+                        }
+                        
+                        // Check if response is JSON or binary
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            return response.json().then(data => {
+                                // Handle JSON response with URL or base64
+                                if (data.result && data.result.url) {
+                                    return fetch(data.result.url);
+                                } else if (data.url) {
+                                    return fetch(data.url);
+                                } else if (data.result && data.result.image_base64) {
+                                    return this.createFileFromBase64(
+                                        data.result.image_base64,
+                                        `enhanced_${this.selectedFiles[index].name}`,
+                                        this.selectedFiles[index].type
+                                    );
+                                } else if (data.image_base64) {
+                                    return this.createFileFromBase64(
+                                        data.image_base64,
+                                        `enhanced_${this.selectedFiles[index].name}`,
+                                        this.selectedFiles[index].type
+                                    );
+                                } else {
+                                    throw new Error('No valid image data in response');
+                                }
+                            });
+                        } else {
+                            // Handle binary response (direct image)
+                            return response.blob().then(blob => {
+                                return new File([blob], `enhanced_${this.selectedFiles[index].name}`, {
+                                    type: this.selectedFiles[index].type
+                                });
+                            });
+                        }
+                    })
+                    .then(enhancedFile => {
+                        // Handle file or response with url/blob
+                        if (enhancedFile instanceof File) {
+                            // We already have the file
+                            return enhancedFile;
+                        } else if (enhancedFile instanceof Response) {
+                            // We got a Response object from a fetch call
+                            return enhancedFile.blob().then(blob => {
+                                return new File([blob], `enhanced_${this.selectedFiles[index].name}`, {
+                                    type: this.selectedFiles[index].type
+                                });
+                            });
+                        } else {
+                            // We should already have a File from createFileFromBase64
+                            return enhancedFile;
+                        }
+                    })
+                    .then(enhancedFile => {
+                        // Replace the original image with the enhanced version
+                        const newFiles = [...this.selectedFiles];
+                        newFiles[index] = enhancedFile;
+                        this.selectedFiles = newFiles;
+                        
+                        // Update UI state
+                        this.isEnhancing = false;
+                        this.enhancingIndex = null;
+                        this.hasEnhanced[index] = true;
+                        
+                        console.log('Image enhanced using FormData method!');
+                    })
+                    .catch(error => {
+                        console.error('FormData enhancement failed:', error);
+                        alert('Image enhancement service is currently unavailable. Please try again later.');
+                        
+                        // Reset enhancement state
+                        this.isEnhancing = false;
+                        this.enhancingIndex = null;
+                    });
+                },
+                
+                revertToOriginal(index) {
+                    // Check if we have the original file
+                    if (this.originalFiles[index]) {
+                        // Restore the original file
+                        const newFiles = [...this.selectedFiles];
+                        newFiles[index] = this.originalFiles[index];
+                        this.selectedFiles = newFiles;
+                        
+                        // Update UI state
+                        this.hasEnhanced[index] = false;
+                    }
+                },
+                
+                convertFileToBase64(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => {
+                            // Extract the base64 data (remove the data URL prefix)
+                            const base64Data = reader.result.split(',')[1];
+                            resolve(base64Data);
+                        };
+                        reader.onerror = error => reject(error);
+                    });
+                },
+                
+                createFileFromBase64(base64Data, filename, mimeType) {
+                    return fetch(`data:${mimeType};base64,${base64Data}`)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            return new File([blob], filename, { type: mimeType });
+                        });
+                },
+                
+                callDeepImageAPI(base64Image) {
+                    const apiKey = '1ae78530-b772-11ef-af6d-2989c59e815d';
+                    // Update to the correct URL as specified by the user
+                    const apiEndpoint = 'https://deep-image.ai/rest_api/process_result';
+                    
+                    // Prepare the request payload
+                    const payload = {
+                        image_base64: base64Image,
+                        preset: "auto_enhance"
+                    };
+                    
+                    console.log('Sending image to Deep Image API for enhancement...');
+                    
+                    // Make the API call
+                    return fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            "X-API-KEY": apiKey,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('API request failed:', response.status, response.statusText);
+                            return response.text().then(text => {
+                                throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('API response received:', data);
+                        
+                        // Extract the enhanced image data from the response
+                        if (data.result && data.result.image_base64) {
+                            return data.result.image_base64;
+                        } else if (data.image_base64) {
+                            return data.image_base64;
+                        } else if (data.result && data.result.url) {
+                            // If we got a URL instead of base64, fetch the image
+                            return this.fetchImageAsBase64(data.result.url);
+                        } else if (data.url) {
+                            return this.fetchImageAsBase64(data.url);
+                        } else {
+                            console.error('Unexpected API response format:', data);
+                            throw new Error('No enhanced image data in API response');
+                        }
+                    });
+                },
+                
+                fetchImageAsBase64(url) {
+                    // Fix: Add proper headers and handle CORS issues
+                    const options = {
+                        headers: {
+                            'Origin': window.location.origin
+                        },
+                        mode: 'cors',
+                        cache: 'no-cache'
+                    };
+                    
+                    return fetch(url, options)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+                            }
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            return new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    const base64data = reader.result.split(',')[1];
+                                    resolve(base64data);
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(blob);
+                            });
+                        });
+                },
+                
+                canEnhance(file) {
+                    // Check if this is an image we can enhance
+                    if (!file || !file.type || !file.type.includes('image')) {
+                        return false;
+                    }
+                    
+                    // Check for supported image types (JPEG, PNG, etc)
+                    const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                    return supportedTypes.some(type => file.type.includes(type));
+                },
             }
         }
     </script>

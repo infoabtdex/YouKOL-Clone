@@ -1,12 +1,12 @@
 /**
- * Simple installation script to set up the Node.js server
+ * Simple installation script to set up the ImaKOL server
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Setting up ImaKOL API Proxy Server...');
+console.log('🚀 Setting up ImaKOL Server...');
 
 // Check if .env file exists, create it if not
 const envPath = path.join(__dirname, '.env');
@@ -37,21 +37,28 @@ try {
 }
 
 console.log('\n🎉 Setup complete!');
-console.log('\nStart the server with:');
+console.log('\n🚀 Start the server with:');
 console.log('  npm start');
-console.log('\nOr for development with auto-restart:');
-console.log('  npm run dev');
-console.log('\nTest the server at:');
-console.log('  http://localhost:3000/api/test');
 
-// Create example .env file
+console.log('\n🌐 Accessing the application:');
+console.log('  Once the server is running, it will display URLs to access the application');
+console.log('  You can access it from your browser or mobile device on the same network');
+
+console.log('\n⚙️ Configuration:');
+console.log('  - The server runs on the port specified in .env (default: 3000, but you can change it)');
+console.log('  - By default, all origins (*) are allowed to access the API');
+console.log('  - You can modify these settings in the .env file');
+
+// Create example .env file with more flexible origins configuration
 fs.writeFileSync(path.join(__dirname, '.env.example'), `# Server Configuration
+# Change this to any port you prefer
 PORT=3000
 
 # CORS Configuration
-ALLOWED_ORIGINS=http://localhost:5500,http://127.0.0.1:5500
+# Add URLs that will access this server (comma-separated), or use * to allow all origins
+# Examples:
+# Allow specific origins: http://localhost:ANY_PORT,http://127.0.0.1:ANY_PORT,http://YOUR_IP:ANY_PORT
+# Allow all origins (not recommended for production): *
+ALLOWED_ORIGINS=*`);
 
-# Add your image enhancement API key here
-# IMAGE_ENHANCEMENT_API_KEY=your_api_key_goes_here`);
-
-console.log('\n✨ Happy coding!'); 
+console.log('\n✨ Happy capturing!'); 

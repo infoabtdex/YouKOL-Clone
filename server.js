@@ -16,15 +16,30 @@ const PORT = process.env.PORT || 3000;
 // Configure CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ['http://localhost:5500', 'http://127.0.0.1:5500'];
+  : ['*']; // Default to allow all origins if none specified
+
+console.log('\n📋 CORS Configuration:');
+if (allowedOrigins.includes('*')) {
+  console.log('⚠️ All origins allowed - this is not recommended for production');
+} else {
+  console.log('Allowed Origins:');
+  allowedOrigins.forEach(origin => console.log(`  - ${origin}`));
+}
+console.log('\nTo configure allowed origins, update the ALLOWED_ORIGINS variable in your .env file');
 
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
+    // Allow all origins if '*' is in the list
+    if (allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified origin.';
+      const msg = `CORS Error: This server does not allow access from origin ${origin}. Update ALLOWED_ORIGINS in .env file.`;
+      console.error(`❌ ${msg}`);
       return callback(new Error(msg), false);
     }
     return callback(null, true);
@@ -71,6 +86,11 @@ app.use(express.json());
 // Serve static files from the current directory (for development)
 app.use(express.static(__dirname));
 
+// Serve index.html at the root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Test endpoint
 app.get('/api/test', (req, res) => {
   res.json({ 
@@ -79,7 +99,7 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Placeholder endpoint for image enhancement (will implement API integration later)
+// Placeholder endpoint for image enhancement
 app.post('/api/enhance-image', upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
@@ -89,8 +109,6 @@ app.post('/api/enhance-image', upload.single('image'), (req, res) => {
       });
     }
 
-    // For now, just return a success message with the file information
-    // This is where you would integrate with your image enhancement API
     res.json({
       status: 'success',
       message: 'Image received successfully',
@@ -131,6 +149,32 @@ app.use((err, req, res, next) => {
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Test the API at: http://localhost:${PORT}/api/test`);
+  const interfaces = require('os').networkInterfaces();
+  const addresses = [];
+  
+  // Get all IP addresses
+  Object.keys(interfaces).forEach(interfaceName => {
+    interfaces[interfaceName].forEach(interfaceData => {
+      // Skip internal and non-IPv4 addresses
+      if (interfaceData.internal === false && interfaceData.family === 'IPv4') {
+        addresses.push(interfaceData.address);
+      }
+    });
+  });
+  
+  console.log(`\n🚀 Server running on port ${PORT}`);
+  
+  console.log(`\n🌐 Access your application at:`);
+  console.log(`  http://localhost:${PORT}`);
+  
+  if (addresses.length > 0) {
+    console.log(`\n📱 Network access (same WiFi/LAN):`);
+    addresses.forEach(address => {
+      console.log(`  http://${address}:${PORT}`);
+    });
+  }
+  
+  console.log(`\n⚙️ Configuration tips:`);
+  console.log(`  - CORS is ${allowedOrigins.includes('*') ? 'allowing all origins' : 'restricted to specific origins'}`);
+  console.log(`  - The server can be configured in the .env file`);
 }); 

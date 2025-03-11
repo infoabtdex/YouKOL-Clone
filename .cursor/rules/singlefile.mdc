@@ -1,9 +1,0 @@
----
-description: singlefile
-globs: .html
-alwaysApply: false
----
-
-# Your rule content
-Keep all code generated within the single file [index.html](mdc:index.html).
-Use the lightweight frameworks like Alpine JS and DaisyUI.

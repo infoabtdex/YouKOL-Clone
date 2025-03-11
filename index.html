@@ -30,9 +30,6 @@
     <!-- Alpine.js via CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
-    <!-- API Client for proxy server communication -->
-    <script src="api-client.js"></script>
-    
     <!-- Environment variables are now defined inline in the script section below -->
     
     <style>
@@ -591,53 +588,6 @@
                     New Post
                 </button>
             </div>
-            
-            <!-- API Test Component -->
-            <div x-data="apiTestComponent()" class="w-full max-w-lg mx-auto bg-white rounded-lg shadow-sm p-4 mt-8">
-                <h3 class="text-lg font-semibold mb-2">API Connection Test</h3>
-                <p class="text-sm text-gray-600 mb-4">Use this to verify the Node.js proxy server is running correctly.</p>
-                
-                <div class="flex justify-between items-center">
-                    <button 
-                        @click="testApiConnection()" 
-                        class="px-4 py-2 bg-[#5C7AEA] text-white rounded-lg shadow-sm hover:bg-[#485EC9] transition-colors"
-                        :disabled="isLoading"
-                    >
-                        <span x-show="!isLoading">Test Connection</span>
-                        <span x-show="isLoading" class="flex items-center">
-                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Testing...
-                        </span>
-                    </button>
-                    
-                    <span 
-                        x-show="apiStatus === 'success'" 
-                        class="text-green-500 flex items-center"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Connected
-                    </span>
-                    
-                    <span 
-                        x-show="apiStatus === 'error'" 
-                        class="text-red-500 flex items-center"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Connection Failed
-                    </span>
-                </div>
-                
-                <div x-show="apiMessage" class="mt-4 p-3 bg-gray-100 rounded-lg">
-                    <p class="text-sm" x-text="apiMessage"></p>
-                </div>
-            </div>
         </div>
         
         <!-- Footer / Capture Button -->
@@ -1027,28 +977,6 @@
                     
                     // Set initial empty caption to show loading indicator
                     this.generatedCaption = '';
-                    
-                    // EXAMPLE: How to use the API client to enhance images
-                    // This is commented out as we're not implementing it yet
-                    /*
-                    // Process image files through the enhancement API
-                    const imageFiles = this.selectedFiles.filter(file => file.type.includes('image'));
-                    
-                    // Process each image if any are available
-                    if (imageFiles.length > 0) {
-                        Promise.all(imageFiles.map(async (imageFile) => {
-                            try {
-                                const result = await window.ApiClient.enhanceImage(imageFile);
-                                console.log('Image enhanced successfully:', result);
-                                // TODO: Replace the original file with the enhanced version
-                                // or update the postMediaUrls with the enhanced image URL
-                            } catch (error) {
-                                console.error('Error enhancing image:', error);
-                                // Continue with the original image
-                            }
-                        }));
-                    }
-                    */
                     
                     // Generate caption using Grok API
                     this.generateCaptionWithGrok().then(() => {
@@ -1795,31 +1723,6 @@
                     });
                 }
             }
-        }
-        
-        function apiTestComponent() {
-            return {
-                isLoading: false,
-                apiStatus: null, // 'success', 'error', or null
-                apiMessage: '',
-                
-                async testApiConnection() {
-                    this.isLoading = true;
-                    this.apiStatus = null;
-                    this.apiMessage = '';
-                    
-                    try {
-                        const response = await window.ApiClient.testConnection();
-                        this.apiStatus = 'success';
-                        this.apiMessage = `Server responded: ${response.message}`;
-                    } catch (error) {
-                        this.apiStatus = 'error';
-                        this.apiMessage = `Error: ${error.message}. Make sure the Node.js server is running at http://localhost:3000`;
-                    } finally {
-                        this.isLoading = false;
-                    }
-                }
-            };
         }
     </script>
 </body>

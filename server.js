@@ -22,20 +22,27 @@ console.log('\n🔑 API Key Configuration:');
 console.log(`Deep Image API Key: ${DEEP_IMAGE_API_KEY ? DEEP_IMAGE_API_KEY.substring(0, 8) + '...' : 'NOT SET ⚠️'}`);
 console.log(`Grok API Key: ${GROK_API_KEY ? GROK_API_KEY.substring(0, 8) + '...' : 'NOT SET ⚠️'}`);
 
-// Configure CORS
+// Setup CORS for cross-origin requests
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ['*']; // Default to allow all origins if none specified
+  : ['*']; // Default to allow all origins if not specified
 
 console.log('\n📋 CORS Configuration:');
 if (allowedOrigins.includes('*')) {
   console.log('⚠️ All origins allowed - this is not recommended for production');
+  console.log('\nTo configure allowed origins, update the ALLOWED_ORIGINS variable in your .env file');
 } else {
-  console.log('Allowed Origins:');
+  console.log('✅ CORS configured to allow only the following origins:');
   allowedOrigins.forEach(origin => console.log(`  - ${origin}`));
 }
-console.log('\nTo configure allowed origins, update the ALLOWED_ORIGINS variable in your .env file');
 
+// Create uploads directory if it doesn't exist
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure CORS middleware
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, etc.)
@@ -55,6 +62,9 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// Serve uploaded files temporarily for the Deep Image API
+app.use('/temp-uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
@@ -98,14 +108,6 @@ app.use(express.static(__dirname));
 // Serve index.html at the root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Test endpoint
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    status: 'success', 
-    message: 'API proxy server is running!' 
-  });
 });
 
 // Enhanced endpoint for image enhancement that proxies to Deep Image API
@@ -184,6 +186,7 @@ async function handleDeepImageAPICall(req, res) {
     
     // Step 1: Get or generate an image URL (this is the simplified workflow)
     let imageUrl;
+    let tempFilePath;
     
     // If we already have an image URL in the request, use it directly
     if (req.body && req.body.imageUrl) {
@@ -191,27 +194,16 @@ async function handleDeepImageAPICall(req, res) {
       imageUrl = req.body.imageUrl;
     }
     // If we have a local file (either uploaded or created from base64), we need to convert it to a URL
-    // Since we don't have a built-in way to host files as URLs, we'll use a data URL
     else if (req.tempFilePath) {
-      console.log('Converting local file to data URL:', req.tempFilePath);
+      console.log('Creating a proper URL for the local file:', req.tempFilePath);
+      tempFilePath = req.tempFilePath;
       
-      // Read the file and convert to base64
-      const fileBuffer = fs.readFileSync(req.tempFilePath);
-      const base64Data = fileBuffer.toString('base64');
+      // Generate a proper URL for the temporary file using the /temp-uploads route
+      const fileName = path.basename(req.tempFilePath);
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      imageUrl = `${baseUrl}/temp-uploads/${fileName}`;
       
-      // Create a data URL
-      const fileType = path.extname(req.tempFilePath).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
-      imageUrl = `data:${fileType};base64,${base64Data}`;
-      
-      console.log('Created data URL from local file');
-      
-      // Clean up temporary file after use
-      try {
-        fs.unlinkSync(req.tempFilePath);
-        console.log('Temporary file deleted:', req.tempFilePath);
-      } catch (unlinkError) {
-        console.error('Error deleting temporary file:', unlinkError);
-      }
+      console.log('Created proper URL for local file:', imageUrl);
     } else {
       throw new Error('No valid image source provided (no URL or file)');
     }
@@ -287,6 +279,16 @@ async function handleDeepImageAPICall(req, res) {
     } else {
       console.error('No result_url in API response:', response.data);
       throw new Error('No enhanced image URL in API response');
+    }
+    
+    // Clean up temporary file after use
+    if (tempFilePath) {
+      try {
+        fs.unlinkSync(tempFilePath);
+        console.log('Temporary file deleted:', tempFilePath);
+      } catch (unlinkError) {
+        console.error('Error deleting temporary file:', unlinkError);
+      }
     }
   } catch (error) {
     console.error('Error calling Deep Image API:', error);

@@ -1,0 +1,485 @@
+/**
+ * ----------------------------------------
+ * ImaKOL - Main Stylesheet
+ * ----------------------------------------
+ * Table of Contents:
+ * 1. CSS Variables & Theme
+ * 2. Base & Reset Styles
+ * 3. Layout & Containers
+ * 4. Components
+ *    4.1 Buttons
+ *    4.2 Cards & Media
+ *    4.3 Camera Interface
+ *    4.4 Form Elements
+ * 5. Animations
+ * 6. Utilities
+ * 7. Media Queries
+ * ----------------------------------------
+ */
+
+/**
+ * 1. CSS Variables & Theme
+ * Centralized color scheme and design tokens
+ */
+:root {
+    /* Color palette */
+    --primary: #E9756B;
+    --primary-light: rgba(233, 117, 107, 0.1);
+    --primary-medium: rgba(233, 117, 107, 0.4);
+    --primary-gradient: linear-gradient(135deg, #E9756B, #F19A94);
+    --secondary: #5C7AEA;
+    --secondary-light: rgba(92, 122, 234, 0.1);
+    --accent: #48BB78;
+    --accent-light: rgba(72, 187, 120, 0.1);
+    
+    /* Text colors */
+    --text-dark: #333333;
+    --text-light: #6B7280;
+    --text-placeholder: rgba(107, 114, 128, 0.7);
+    
+    /* Background colors */
+    --bg-light: #F9FAFB;
+    --bg-white: #FFFFFF;
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    --bg-transparent: rgba(255, 255, 255, 0.3);
+    
+    /* Border colors */
+    --border-color: #E5E7EB;
+    
+    /* Effects */
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    --button-shadow: 0 4px 12px var(--primary-medium);
+    --button-shadow-hover: 0 6px 16px var(--primary-medium);
+    
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    
+    /* Border radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-full: 50%;
+    
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-medium: 0.3s ease;
+    
+    /* Mobile viewport fix */
+    --vh: 1vh;
+}
+
+/**
+ * 2. Base & Reset Styles
+ */
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--bg-light);
+}
+
+/* Common transitions for interactive elements */
+button, .camera-button, .camera-option, .preview-item {
+    transition: all var(--transition-fast);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/**
+ * 3. Layout & Containers
+ */
+#app {
+    min-height: 100vh; /* Fallback */
+    min-height: calc(var(--vh, 1vh) * 100);
+    background-color: var(--bg-light);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.content-wrapper {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--bg-light);
+    flex: 1 1 auto;
+}
+
+.view-container {
+    min-height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-light);
+}
+
+.footer-container {
+    width: 100%;
+    background-color: var(--bg-light);
+    padding-bottom: env(safe-area-inset-bottom, var(--spacing-md));
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+/* iOS safe area support */
+@supports (padding: max(0px)) {
+    .camera-controls {
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+    
+    .camera-top-controls {
+        padding-top: max(20px, env(safe-area-inset-top));
+    }
+}
+
+/**
+ * 4. Components
+ */
+/* 4.1 Buttons */
+.capture-btn {
+    background: var(--primary-gradient);
+    box-shadow: var(--button-shadow);
+    transform: translateY(0);
+    transition: all var(--transition-fast);
+}
+
+.capture-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--button-shadow-hover);
+}
+
+.upload-btn {
+    background-color: var(--bg-white);
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.float-capture-btn {
+    background: var(--primary-gradient);
+    box-shadow: var(--button-shadow);
+}
+
+.action-button {
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.primary-button {
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 4px 6px rgba(233, 117, 107, 0.25);
+}
+
+.secondary-button {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+}
+
+/* 4.2 Cards & Media */
+.app-card {
+    background-color: var(--bg-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.post-container {
+    background-color: var(--bg-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: all var(--transition-medium);
+    width: 100%;
+    max-width: 500px;
+}
+
+.preview-item {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--spacing-sm);
+    width: 100%;
+    background-color: var(--bg-white);
+}
+
+.media-grid-item {
+    aspect-ratio: 1/1;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    position: relative;
+}
+
+.media-grid-item img,
+.media-grid-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.preview-container {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.preview-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Logo styling */
+.logo-text {
+    font-weight: bold;
+}
+
+.logo-text span {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+}
+
+/* 4.3 Camera Interface */
+.camera-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.camera-feed {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: linear-gradient(to top, var(--bg-overlay), transparent);
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+.camera-top-controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, var(--bg-overlay), transparent);
+    z-index: 1001;
+}
+
+.camera-button {
+    width: 70px;
+    height: 70px;
+    border-radius: var(--radius-full);
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.camera-button-inner {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-full);
+    border: 3px solid var(--primary);
+}
+
+.camera-option {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-full);
+    background-color: var(--bg-transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+}
+
+.camera-option svg {
+    width: 24px;
+    height: 24px;
+    color: white;
+}
+
+/* 4.4 Form Elements */
+.caption-box {
+    background-color: var(--primary-light);
+    border: 1px solid rgba(233, 117, 107, 0.2);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    transition: all var(--transition-fast);
+}
+
+.caption-box:focus-within {
+    box-shadow: 0 0 0 2px rgba(233, 117, 107, 0.3);
+}
+
+.caption-textarea {
+    width: 100%;
+    border: none;
+    background-color: transparent;
+    resize: none;
+    outline: none;
+    font-size: 16px;
+    color: var(--text-dark);
+}
+
+.caption-textarea::placeholder {
+    color: var(--text-placeholder);
+}
+
+/**
+ * 5. Animations
+ */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    border: 3px solid var(--primary-light);
+    border-top-color: var(--primary);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/**
+ * 5.1 Enhancement Effects
+ */
+.enhance-btn {
+    opacity: 0.85;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.enhance-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.enhanced-image {
+    position: relative;
+}
+
+.enhanced-badge {
+    background-color: var(--secondary);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.enhancement-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 10;
+}
+
+.enhancement-loader {
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/**
+ * 6. Utilities
+ * Helper classes for specific behaviors
+ */
+/* Empty for now - move utility classes here as needed */
+
+/**
+ * 7. Media Queries
+ */
+/* Desktop hover effects */
+@media (hover: hover) {
+    button:hover:not(:disabled) {
+        opacity: 0.9;
+    }
+    
+    .camera-button:hover {
+        transform: scale(1.05);
+    }
+    
+    .camera-option:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+    .media-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .app-card {
+        border-radius: var(--radius-md);
+        margin-bottom: var(--spacing-md);
+    }
+} 

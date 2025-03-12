@@ -9,6 +9,9 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.3/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- External Stylesheet -->
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+    
     <!-- Configuring Tailwind for custom colors -->
     <script>
         tailwind.config = {
@@ -31,373 +34,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <!-- Environment variables are now defined inline in the script section below -->
-    
-    <style>
-        html, body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100%;
-            min-height: 100%;
-            margin: 0;
-            padding: 0;
-            overscroll-behavior: none;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-            background-color: var(--bg-light);
-        }
-        
-        /* Theme colors defined as CSS variables for consistency */
-        :root {
-            --primary-color: #E9756B;
-            --primary-light: rgba(233, 117, 107, 0.1);
-            --primary-medium: rgba(233, 117, 107, 0.4);
-            --primary-gradient: linear-gradient(135deg, #E9756B, #F19A94);
-            --secondary-color: #5C7AEA;
-            --secondary-light: rgba(92, 122, 234, 0.1);
-            --accent-color: #48BB78;
-            --accent-light: rgba(72, 187, 120, 0.1);
-            --text-dark: #333333;
-            --text-light: #6B7280;
-            --bg-light: #F9FAFB;
-            --bg-white: #FFFFFF;
-            --border-color: #E5E7EB;
-            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
-            --vh: 1vh; /* Default value, will be updated by JS */
-        }
-        
-        #app {
-            min-height: 100vh; /* Fallback for browsers that do not support custom properties */
-            min-height: calc(var(--vh, 1vh) * 100);
-            background-color: var(--bg-light);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            width: 100%;
-            overflow-x: hidden;
-        }
-        
-        .capture-btn {
-            background: var(--primary-gradient);
-            box-shadow: 0 4px 12px var(--primary-medium);
-            transform: translateY(0);
-            transition: all 0.2s ease;
-        }
-        
-        .capture-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px var(--primary-medium);
-        }
-        
-        .upload-btn {
-            background-color: var(--bg-white);
-            color: var(--text-dark);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        
-        .logo-text {
-            font-weight: bold;
-        }
-        
-        .logo-text span {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            color: transparent;
-        }
-        
-        .float-capture-btn {
-            background: var(--primary-gradient);
-            box-shadow: 0 4px 12px var(--primary-medium);
-        }
-        
-        /* Smooth transitions for all interactive elements */
-        button, .camera-button, .camera-option, .preview-item {
-            transition: all 0.2s ease;
-        }
-        
-        button:active {
-            transform: scale(0.98);
-        }
-        
-        /* Cards and containers with subtle shadows */
-        .app-card {
-            background-color: var(--bg-white);
-            border-radius: 12px;
-            box-shadow: var(--card-shadow);
-            overflow: hidden;
-        }
-        
-        /* Improved responsiveness for preview items */
-        .preview-item {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        
-        /* Media preview grid with better responsiveness */
-        .media-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 8px;
-            width: 100%;
-            background-color: var(--bg-white);
-        }
-        
-        .media-grid-item {
-            aspect-ratio: 1/1;
-            width: 100%;
-            overflow: hidden;
-            border-radius: 8px;
-            position: relative;
-        }
-        
-        .media-grid-item img,
-        .media-grid-item video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        /* Content containers */
-        .content-wrapper {
-            width: 100%;
-            max-width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: var(--bg-light);
-            flex: 1 1 auto;
-        }
-        
-        /* Full height container for main views */
-        .view-container {
-            min-height: 100%;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--bg-light);
-        }
-        
-        /* Fixed background for footer */
-        .footer-container {
-            width: 100%;
-            background-color: var(--bg-light);
-            padding-bottom: env(safe-area-inset-bottom, 16px);
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
-        }
-        
-        /* Improved scrolling experience */
-        .preview-container {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .preview-container::-webkit-scrollbar {
-            display: none;
-        }
-        
-        /* Caption box styling */
-        .caption-box {
-            background-color: var(--primary-light);
-            border: 1px solid rgba(233, 117, 107, 0.2);
-            border-radius: 12px;
-            padding: 12px;
-            transition: all 0.2s ease;
-        }
-        
-        .caption-box:focus-within {
-            box-shadow: 0 0 0 2px rgba(233, 117, 107, 0.3);
-        }
-        
-        .caption-textarea {
-            width: 100%;
-            border: none;
-            background-color: transparent;
-            resize: none;
-            outline: none;
-            font-size: 16px;
-            color: var(--text-dark);
-        }
-        
-        .caption-textarea::placeholder {
-            color: rgba(107, 114, 128, 0.7);
-        }
-        
-        /* Better camera UI */
-        .camera-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .camera-feed {
-            flex: 1;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .camera-controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 20px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-            padding-bottom: env(safe-area-inset-bottom, 20px); /* iOS notch support */
-        }
-        
-        .camera-button {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background-color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-        
-        .camera-button-inner {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 3px solid var(--primary-color);
-        }
-        
-        .camera-option {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-        }
-        
-        .camera-option svg {
-            width: 24px;
-            height: 24px;
-            color: #fff;
-        }
-        
-        .camera-top-controls {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-            z-index: 1001;
-        }
-        
-        /* Post container styling */
-        .post-container {
-            background-color: var(--bg-white);
-            border-radius: 16px;
-            box-shadow: var(--card-shadow);
-            overflow: hidden;
-            transition: all 0.3s ease;
-            width: 100%;
-            max-width: 500px;
-        }
-        
-        .action-button {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        
-        .primary-button {
-            background: var(--primary-gradient);
-            color: white;
-            box-shadow: 0 4px 6px rgba(233, 117, 107, 0.25);
-        }
-        
-        .secondary-button {
-            background-color: var(--bg-light);
-            color: var(--text-dark);
-        }
-        
-        /* Loading indicator */
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 3px solid var(--primary-light);
-            border-top-color: var(--primary-color);
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        
-        /* Additional safe area support for iOS */
-        @supports (padding: max(0px)) {
-            .camera-controls {
-                padding-bottom: max(20px, env(safe-area-inset-bottom));
-            }
-            
-            .camera-top-controls {
-                padding-top: max(20px, env(safe-area-inset-top));
-            }
-        }
-        
-        /* Button hover effects (only on desktop) */
-        @media (hover: hover) {
-            button:hover:not(:disabled) {
-                opacity: 0.9;
-            }
-            
-            .camera-button:hover {
-                transform: scale(1.05);
-            }
-            
-            .camera-option:hover {
-                background-color: rgba(255, 255, 255, 0.4);
-            }
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 640px) {
-            .media-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            }
-            
-            .app-card {
-                border-radius: 12px;
-                margin-bottom: 16px;
-            }
-        }
-    </style>
 </head>
 <body class="bg-[#F9FAFB]">
     <div id="app" x-data="appState()" x-init="await initApp()" class="flex flex-col items-center justify-between min-h-screen p-4 bg-[#F9FAFB] overflow-x-hidden">
@@ -467,6 +103,58 @@
                                         Your browser does not support the video tag.
                                     </video>
                                 </template>
+                                
+                                <!-- Loading indicator for enhancement -->
+                                <div 
+                                    x-show="isEnhancing && enhancingIndex === index" 
+                                    class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+                                >
+                                    <div class="text-white text-center">
+                                        <div class="loading-spinner mx-auto"></div>
+                                        <p class="mt-2 text-sm">Enhancing...</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Image actions (remove, enhance, revert) -->
+                                <div class="absolute bottom-2 right-2 flex space-x-1">
+                                    <!-- Only show enhance button for images -->
+                                    <template x-if="file.type.includes('image')">
+                                        <div>
+                                            <!-- Enhance button -->
+                                            <button 
+                                                x-show="!hasEnhanced[index]"
+                                                @click="enhanceImage(index)" 
+                                                class="bg-secondary text-white rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md"
+                                                title="Enhance image"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                            
+                                            <!-- Revert button (show after enhancement) -->
+                                            <button 
+                                                x-show="hasEnhanced[index]"
+                                                @click="revertToOriginal(index)" 
+                                                class="bg-yellow-500 text-white rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md"
+                                                title="Revert to original"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <!-- Enhanced indicator -->
+                                <div 
+                                    x-show="hasEnhanced[index] && file.type.includes('image')" 
+                                    class="absolute top-2 left-2 bg-secondary text-white text-xs px-2 py-1 rounded-full"
+                                >
+                                    Enhanced
+                                </div>
+                                
                                 <button 
                                     @click="removeFile(index)" 
                                     class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md"
@@ -654,14 +342,12 @@
         // Environment Variables for ImaKOL
         // 
         // This code provides environment variables in a browser-accessible way.
-        // In a production environment, this would be handled by server-side code or environment
-        // injection during the build process for better security.
+        // API keys are now handled securely on the server side.
         
         // Initialize environment variables container
         window.ENV = window.ENV || {};
         
-        // Set the API key directly
-        window.ENV.XAI_API_KEY = "xai-bNdcB9vLeicNoDwv8obQhn71ZKP3p7W39oeEeDZFWmhzASEFnjdvVz6C1HYzQns20Ct7R1DeZRk70M1F";
+        // All API-related operations now happen server-side for security
         
         console.log('Environment variables loaded successfully');
         
@@ -719,6 +405,12 @@
                 recordedChunks: [],
                 capturedImage: null,
                 generatedCaption: '',
+                
+                // Enhancement-related state
+                isEnhancing: false,
+                enhancingIndex: null,
+                hasEnhanced: {}, // Track which images have been enhanced
+                originalFiles: {}, // Store original files for comparison/reverting
                 
                 async captureMedia() {
                     try {
@@ -972,7 +664,8 @@
                     this.postMediaUrls = this.selectedFiles.map(file => ({
                         src: URL.createObjectURL(file),
                         type: file.type,
-                        file: file // Keep reference to original file for sharing
+                        file: file, // Keep reference to original file for sharing
+                        isEnhanced: this.hasEnhanced[this.selectedFiles.indexOf(file)] || false // Track which images are enhanced
                     }));
                     
                     // Set initial empty caption to show loading indicator
@@ -993,22 +686,6 @@
                 
                 async generateCaptionWithGrok() {
                     try {
-                        // Get the Grok API key from the ENV
-                        const apiKey = window.ENV?.XAI_API_KEY;
-                        
-                        // Debug log to verify API key (truncated for security)
-                        if (apiKey) {
-                            const keyFirstChars = apiKey.substring(0, 8);
-                            const keyLength = apiKey.length;
-                            console.log(`API key found (${keyLength} chars): ${keyFirstChars}...`);
-                        }
-                        
-                        if (!apiKey) {
-                            console.error('Grok API key not found in environment variables');
-                            this.generatedCaption = 'Could not generate caption: API key not found. Please check console for more details.';
-                            throw new Error('API key not found');
-                        }
-                        
                         // Reset caption while generating
                         this.generatedCaption = '';
                         
@@ -1165,60 +842,39 @@
                             
                             console.log(`Successfully processed ${mediaData.length} out of ${this.selectedFiles.length} media files`);
                             
-                            // Create message content with text prompt and images
-                            const messageContent = [
-                                {
-                                    type: "text",
-                                    text: "Generate a creative, engaging, and social media friendly caption for this post. The caption should be short but catchy, suitable for social media, and should capture the essence of all the image(s)/video(s) into one caption. Don't include hashtags unless they are naturally part of the caption flow."
-                                }
-                            ];
+                            // Use server endpoint to generate caption
+                            console.log('Calling server-side Grok API endpoint for caption generation');
                             
-                            // Add all images to message content
-                            mediaData.forEach(media => {
-                                messageContent.push({
-                                    type: "image_url",
-                                    image_url: {
-                                        url: `data:${media.type};base64,${media.data}`,
-                                        detail: "high"
-                                    }
-                                });
-                            });
-                            
-                            // Create request for Grok Vision API
-                            const requestData = {
-                                model: "grok-2-vision-latest",
-                                messages: [
-                                    {
-                                        role: "user",
-                                        content: messageContent
-                                    }
-                                ]
+                            // Create the request payload
+                            const payload = {
+                                mediaItems: mediaData,
+                                prompt: "Generate a creative, engaging, and social media friendly caption for this post. The caption should be short but catchy, suitable for social media, and should capture the essence of all the image(s)/video(s) into one caption. Don't include hashtags unless they are naturally part of the caption flow."
                             };
                             
-                            // Call Grok API with new X.AI endpoint
-                            const response = await fetch('https://api.x.ai/v1/chat/completions', {
+                            // Call the server endpoint
+                            const response = await fetch('/api/generate-caption', {
                                 method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${apiKey}`
+                                    'Content-Type': 'application/json'
                                 },
-                                body: JSON.stringify(requestData)
+                                body: JSON.stringify(payload)
                             });
                             
                             if (!response.ok) {
                                 const errorText = await response.text();
-                                console.error(`API request failed with status ${response.status}:`, errorText);
-                                throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+                                console.error(`Server request failed with status ${response.status}:`, errorText);
+                                throw new Error(`Caption generation failed: ${response.statusText}`);
                             }
                             
                             const responseData = await response.json();
                             
-                            if (!responseData.choices || !responseData.choices[0]?.message?.content) {
-                                console.error('Invalid response format from API:', responseData);
-                                throw new Error('Invalid response format from API');
+                            // Check response format
+                            if (responseData.status !== 'success' || !responseData.result || !responseData.result.caption) {
+                                console.error('Invalid response format from server:', responseData);
+                                throw new Error('Invalid response format from server');
                             }
                             
-                            this.generatedCaption = responseData.choices[0].message.content.trim();
+                            this.generatedCaption = responseData.result.caption;
                             console.log('Caption generated successfully');
                             
                         } catch (error) {
@@ -1721,7 +1377,244 @@
                             document.body.removeChild(link);
                         }, 100);
                     });
-                }
+                },
+                
+                // Add these new functions for image enhancement
+                enhanceImage(index) {
+                    // Only enhance images, not videos
+                    if (!this.selectedFiles[index] || !this.canEnhance(this.selectedFiles[index])) {
+                        console.error('Cannot enhance: not a supported image or invalid index');
+                        alert('This image type cannot be enhanced. Only JPEG, PNG, and WebP formats are supported.');
+                        return;
+                    }
+                    
+                    // Set the file being enhanced
+                    this.enhancingIndex = index;
+                    this.isEnhancing = true;
+                    
+                    // Save the original file before enhancement
+                    if (!this.originalFiles[index]) {
+                        this.originalFiles[index] = this.selectedFiles[index];
+                    }
+                    
+                    // Convert the file to base64
+                    this.convertFileToBase64(this.selectedFiles[index])
+                        .then(base64Data => {
+                            console.log(`Enhancing image at index ${index} - Base64 data length: ${base64Data.length} chars`);
+                            // Call the Deep Image API
+                            return this.callDeepImageAPI(base64Data);
+                        })
+                        .then(enhancedImageData => {
+                            // Create a new file from the enhanced image
+                            return this.createFileFromBase64(
+                                enhancedImageData, 
+                                `enhanced_${this.selectedFiles[index].name}`,
+                                this.selectedFiles[index].type
+                            );
+                        })
+                        .then(enhancedFile => {
+                            // Replace the original image with the enhanced version
+                            const newFiles = [...this.selectedFiles];
+                            newFiles[index] = enhancedFile;
+                            this.selectedFiles = newFiles;
+                            
+                            // Update UI state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
+                            this.hasEnhanced[index] = true;
+                            
+                            console.log('Image successfully enhanced!');
+                        })
+                        .catch(error => {
+                            console.error('Image enhancement failed:', error);
+                            
+                            // Show a user-friendly error message
+                            let errorMessage = 'Image enhancement failed. Please try again.';
+                            
+                            // Check for specific error types
+                            if (error.message.includes('API request failed')) {
+                                errorMessage = 'Connection to enhancement service failed. Please check your internet connection and try again.';
+                                
+                                // Try alternative API endpoint as a fallback
+                                if (this.isEnhancing) {
+                                    this.tryAlternativeEnhancement(index);
+                                    return;
+                                }
+                            } else if (error.message.includes('exceeded')) {
+                                errorMessage = 'Enhancement limit exceeded. Please try again later.';
+                            } else if (error.message.includes('Method Not Allowed')) {
+                                errorMessage = 'API configuration issue. Trying alternative approach...';
+                                
+                                // Try alternative API endpoint as a fallback
+                                if (this.isEnhancing) {
+                                    this.tryAlternativeEnhancement(index);
+                                    return;
+                                }
+                            }
+                            
+                            alert(errorMessage);
+                            
+                            // Reset enhancement state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
+                        });
+                },
+                
+                tryAlternativeEnhancement(index) {
+                    console.log('Using server-based enhancement...');
+                    
+                    // Just use our server endpoint again with the same method
+                    // The server will handle all the API logic
+                    this.convertFileToBase64(this.originalFiles[index])
+                        .then(base64Data => {
+                            console.log(`Trying alternative enhancement for image at index ${index}`);
+                            return this.callDeepImageAPI(base64Data);
+                        })
+                        .then(enhancedImageData => {
+                            return this.createFileFromBase64(
+                                enhancedImageData, 
+                                `enhanced_${this.selectedFiles[index].name}`,
+                                this.selectedFiles[index].type
+                            );
+                        })
+                        .then(enhancedFile => {
+                            // Replace the original image with the enhanced version
+                            const newFiles = [...this.selectedFiles];
+                            newFiles[index] = enhancedFile;
+                            this.selectedFiles = newFiles;
+                            
+                            // Update UI state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
+                            this.hasEnhanced[index] = true;
+                            
+                            console.log('Image successfully enhanced using server method!');
+                        })
+                        .catch(error => {
+                            console.error('Server enhancement failed:', error);
+                            alert('Image enhancement failed. Please try again later.');
+                            
+                            // Reset enhancement state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
+                        });
+                },
+                
+                revertToOriginal(index) {
+                    // Check if we have the original file
+                    if (this.originalFiles[index]) {
+                        // Restore the original file
+                        const newFiles = [...this.selectedFiles];
+                        newFiles[index] = this.originalFiles[index];
+                        this.selectedFiles = newFiles;
+                        
+                        // Update UI state
+                        this.hasEnhanced[index] = false;
+                    }
+                },
+                
+                convertFileToBase64(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => {
+                            // Extract the base64 data (remove the data URL prefix)
+                            const base64Data = reader.result.split(',')[1];
+                            resolve(base64Data);
+                        };
+                        reader.onerror = error => reject(error);
+                    });
+                },
+                
+                createFileFromBase64(base64Data, filename, mimeType) {
+                    return fetch(`data:${mimeType};base64,${base64Data}`)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            return new File([blob], filename, { type: mimeType });
+                        });
+                },
+                
+                callDeepImageAPI(base64Image) {
+                    // Call our server endpoint with the actual image data
+                    const apiEndpoint = '/api/enhance-image';
+                    
+                    // Prepare the request payload with the actual image data
+                    const payload = {
+                        image_base64: base64Image
+                    };
+                    
+                    console.log(`Sending image data for enhancement (${base64Image.length} chars)`);
+                    
+                    // Make the API call
+                    return fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('API request failed:', response.status, response.statusText);
+                            return response.text().then(text => {
+                                throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('API response received');
+                        
+                        // Extract the enhanced image data from the response
+                        if (data.result && data.result.image_base64) {
+                            return data.result.image_base64;
+                        } else {
+                            console.error('Unexpected API response format:', data);
+                            throw new Error('No enhanced image data in API response');
+                        }
+                    });
+                },
+                
+                fetchImageAsBase64(url) {
+                    // Fix: Add proper headers and handle CORS issues
+                    const options = {
+                        headers: {
+                            'Origin': window.location.origin
+                        },
+                        mode: 'cors',
+                        cache: 'no-cache'
+                    };
+                    
+                    return fetch(url, options)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+                            }
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            return new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    const base64data = reader.result.split(',')[1];
+                                    resolve(base64data);
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(blob);
+                            });
+                        });
+                },
+                
+                canEnhance(file) {
+                    // Check if this is an image we can enhance
+                    if (!file || !file.type || !file.type.includes('image')) {
+                        return false;
+                    }
+                    
+                    // Check for supported image types (JPEG, PNG, etc)
+                    const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                    return supportedTypes.some(type => file.type.includes(type));
+                },
             }
         }
     </script>

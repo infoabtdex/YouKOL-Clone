@@ -342,14 +342,12 @@
         // Environment Variables for ImaKOL
         // 
         // This code provides environment variables in a browser-accessible way.
-        // In a production environment, this would be handled by server-side code or environment
-        // injection during the build process for better security.
+        // API keys are now handled securely on the server side.
         
         // Initialize environment variables container
         window.ENV = window.ENV || {};
         
-        // Set the API key directly
-        window.ENV.XAI_API_KEY = "xai-bNdcB9vLeicNoDwv8obQhn71ZKP3p7W39oeEeDZFWmhzASEFnjdvVz6C1HYzQns20Ct7R1DeZRk70M1F";
+        // All API-related operations now happen server-side for security
         
         console.log('Environment variables loaded successfully');
         
@@ -688,22 +686,6 @@
                 
                 async generateCaptionWithGrok() {
                     try {
-                        // Get the Grok API key from the ENV
-                        const apiKey = window.ENV?.XAI_API_KEY;
-                        
-                        // Debug log to verify API key (truncated for security)
-                        if (apiKey) {
-                            const keyFirstChars = apiKey.substring(0, 8);
-                            const keyLength = apiKey.length;
-                            console.log(`API key found (${keyLength} chars): ${keyFirstChars}...`);
-                        }
-                        
-                        if (!apiKey) {
-                            console.error('Grok API key not found in environment variables');
-                            this.generatedCaption = 'Could not generate caption: API key not found. Please check console for more details.';
-                            throw new Error('API key not found');
-                        }
-                        
                         // Reset caption while generating
                         this.generatedCaption = '';
                         
@@ -860,60 +842,39 @@
                             
                             console.log(`Successfully processed ${mediaData.length} out of ${this.selectedFiles.length} media files`);
                             
-                            // Create message content with text prompt and images
-                            const messageContent = [
-                                {
-                                    type: "text",
-                                    text: "Generate a creative, engaging, and social media friendly caption for this post. The caption should be short but catchy, suitable for social media, and should capture the essence of all the image(s)/video(s) into one caption. Don't include hashtags unless they are naturally part of the caption flow."
-                                }
-                            ];
+                            // Use server endpoint to generate caption
+                            console.log('Calling server-side Grok API endpoint for caption generation');
                             
-                            // Add all images to message content
-                            mediaData.forEach(media => {
-                                messageContent.push({
-                                    type: "image_url",
-                                    image_url: {
-                                        url: `data:${media.type};base64,${media.data}`,
-                                        detail: "high"
-                                    }
-                                });
-                            });
-                            
-                            // Create request for Grok Vision API
-                            const requestData = {
-                                model: "grok-2-vision-latest",
-                                messages: [
-                                    {
-                                        role: "user",
-                                        content: messageContent
-                                    }
-                                ]
+                            // Create the request payload
+                            const payload = {
+                                mediaItems: mediaData,
+                                prompt: "Generate a creative, engaging, and social media friendly caption for this post. The caption should be short but catchy, suitable for social media, and should capture the essence of all the image(s)/video(s) into one caption. Don't include hashtags unless they are naturally part of the caption flow."
                             };
                             
-                            // Call Grok API with new X.AI endpoint
-                            const response = await fetch('https://api.x.ai/v1/chat/completions', {
+                            // Call the server endpoint
+                            const response = await fetch('/api/generate-caption', {
                                 method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${apiKey}`
+                                    'Content-Type': 'application/json'
                                 },
-                                body: JSON.stringify(requestData)
+                                body: JSON.stringify(payload)
                             });
                             
                             if (!response.ok) {
                                 const errorText = await response.text();
-                                console.error(`API request failed with status ${response.status}:`, errorText);
-                                throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+                                console.error(`Server request failed with status ${response.status}:`, errorText);
+                                throw new Error(`Caption generation failed: ${response.statusText}`);
                             }
                             
                             const responseData = await response.json();
                             
-                            if (!responseData.choices || !responseData.choices[0]?.message?.content) {
-                                console.error('Invalid response format from API:', responseData);
-                                throw new Error('Invalid response format from API');
+                            // Check response format
+                            if (responseData.status !== 'success' || !responseData.result || !responseData.result.caption) {
+                                console.error('Invalid response format from server:', responseData);
+                                throw new Error('Invalid response format from server');
                             }
                             
-                            this.generatedCaption = responseData.choices[0].message.content.trim();
+                            this.generatedCaption = responseData.result.caption;
                             console.log('Caption generated successfully');
                             
                         } catch (error) {
@@ -1439,6 +1400,7 @@
                     // Convert the file to base64
                     this.convertFileToBase64(this.selectedFiles[index])
                         .then(base64Data => {
+                            console.log(`Enhancing image at index ${index} - Base64 data length: ${base64Data.length} chars`);
                             // Call the Deep Image API
                             return this.callDeepImageAPI(base64Data);
                         })
@@ -1499,67 +1461,18 @@
                 },
                 
                 tryAlternativeEnhancement(index) {
-                    console.log('Trying alternative enhancement API endpoint...');
+                    console.log('Using server-based enhancement...');
                     
-                    try {
-                        // First, try the alternative API endpoint with JSON payload
-                        this.tryJsonEnhancement(index);
-                    } catch (error) {
-                        console.error('JSON enhancement approach failed, trying FormData:', error);
-                        // If that fails, try with FormData approach (more compatible with some APIs)
-                        this.tryFormDataEnhancement(index);
-                    }
-                },
-                
-                tryJsonEnhancement(index) {
-                    // Convert the file to base64
+                    // Just use our server endpoint again with the same method
+                    // The server will handle all the API logic
                     this.convertFileToBase64(this.originalFiles[index])
                         .then(base64Data => {
-                            // Use alternative endpoint
-                            const apiKey = '1ae78530-b772-11ef-af6d-2989c59e815d';
-                            const alternativeEndpoint = 'https://deep-image.ai/rest_api/enhance-image';
-                            
-                            // Prepare the request payload for alternative endpoint
-                            const payload = {
-                                image: base64Data,
-                                options: {
-                                    preset: "auto"
-                                }
-                            };
-                            
-                            // Make the API call
-                            return fetch(alternativeEndpoint, {
-                                method: 'POST',
-                                headers: {
-                                    "Authorization": `Bearer ${apiKey}`,
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify(payload)
-                            });
+                            console.log(`Trying alternative enhancement for image at index ${index}`);
+                            return this.callDeepImageAPI(base64Data);
                         })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`Alternative API failed: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            console.log('Alternative API response:', data);
-                            
-                            // Extract the enhanced image data
-                            let enhancedData = null;
-                            
-                            if (data.enhanced_image) {
-                                enhancedData = data.enhanced_image;
-                            } else if (data.data && data.data.image) {
-                                enhancedData = data.data.image;
-                            } else {
-                                throw new Error('No enhanced image in alternative API response');
-                            }
-                            
-                            // Create a new file
+                        .then(enhancedImageData => {
                             return this.createFileFromBase64(
-                                enhancedData,
+                                enhancedImageData, 
                                 `enhanced_${this.selectedFiles[index].name}`,
                                 this.selectedFiles[index].type
                             );
@@ -1575,112 +1488,16 @@
                             this.enhancingIndex = null;
                             this.hasEnhanced[index] = true;
                             
-                            console.log('Image enhanced using alternative method!');
+                            console.log('Image successfully enhanced using server method!');
                         })
                         .catch(error => {
-                            console.error('Alternative enhancement failed:', error);
+                            console.error('Server enhancement failed:', error);
+                            alert('Image enhancement failed. Please try again later.');
                             
-                            // Try the FormData approach as a last resort
-                            this.tryFormDataEnhancement(index);
+                            // Reset enhancement state
+                            this.isEnhancing = false;
+                            this.enhancingIndex = null;
                         });
-                },
-                
-                tryFormDataEnhancement(index) {
-                    console.log('Trying FormData enhancement approach...');
-                    
-                    // Use FormData for maximum compatibility
-                    const formData = new FormData();
-                    formData.append('file', this.originalFiles[index]);
-                    formData.append('preset', 'auto_enhance');
-                    
-                    const apiKey = '1ae78530-b772-11ef-af6d-2989c59e815d';
-                    const formDataEndpoint = 'https://deep-image.ai/rest_api/process';
-                    
-                    fetch(formDataEndpoint, {
-                        method: 'POST',
-                        headers: {
-                            "X-API-KEY": apiKey
-                            // Note: Do NOT set Content-Type header when using FormData!
-                        },
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`FormData API failed: ${response.status}`);
-                        }
-                        
-                        // Check if response is JSON or binary
-                        const contentType = response.headers.get('content-type');
-                        if (contentType && contentType.includes('application/json')) {
-                            return response.json().then(data => {
-                                // Handle JSON response with URL or base64
-                                if (data.result && data.result.url) {
-                                    return fetch(data.result.url);
-                                } else if (data.url) {
-                                    return fetch(data.url);
-                                } else if (data.result && data.result.image_base64) {
-                                    return this.createFileFromBase64(
-                                        data.result.image_base64,
-                                        `enhanced_${this.selectedFiles[index].name}`,
-                                        this.selectedFiles[index].type
-                                    );
-                                } else if (data.image_base64) {
-                                    return this.createFileFromBase64(
-                                        data.image_base64,
-                                        `enhanced_${this.selectedFiles[index].name}`,
-                                        this.selectedFiles[index].type
-                                    );
-                                } else {
-                                    throw new Error('No valid image data in response');
-                                }
-                            });
-                        } else {
-                            // Handle binary response (direct image)
-                            return response.blob().then(blob => {
-                                return new File([blob], `enhanced_${this.selectedFiles[index].name}`, {
-                                    type: this.selectedFiles[index].type
-                                });
-                            });
-                        }
-                    })
-                    .then(enhancedFile => {
-                        // Handle file or response with url/blob
-                        if (enhancedFile instanceof File) {
-                            // We already have the file
-                            return enhancedFile;
-                        } else if (enhancedFile instanceof Response) {
-                            // We got a Response object from a fetch call
-                            return enhancedFile.blob().then(blob => {
-                                return new File([blob], `enhanced_${this.selectedFiles[index].name}`, {
-                                    type: this.selectedFiles[index].type
-                                });
-                            });
-                        } else {
-                            // We should already have a File from createFileFromBase64
-                            return enhancedFile;
-                        }
-                    })
-                    .then(enhancedFile => {
-                        // Replace the original image with the enhanced version
-                        const newFiles = [...this.selectedFiles];
-                        newFiles[index] = enhancedFile;
-                        this.selectedFiles = newFiles;
-                        
-                        // Update UI state
-                        this.isEnhancing = false;
-                        this.enhancingIndex = null;
-                        this.hasEnhanced[index] = true;
-                        
-                        console.log('Image enhanced using FormData method!');
-                    })
-                    .catch(error => {
-                        console.error('FormData enhancement failed:', error);
-                        alert('Image enhancement service is currently unavailable. Please try again later.');
-                        
-                        // Reset enhancement state
-                        this.isEnhancing = false;
-                        this.enhancingIndex = null;
-                    });
                 },
                 
                 revertToOriginal(index) {
@@ -1718,23 +1535,20 @@
                 },
                 
                 callDeepImageAPI(base64Image) {
-                    const apiKey = '1ae78530-b772-11ef-af6d-2989c59e815d';
-                    // Update to the correct URL as specified by the user
-                    const apiEndpoint = 'https://deep-image.ai/rest_api/process_result';
+                    // Call our server endpoint with the actual image data
+                    const apiEndpoint = '/api/enhance-image';
                     
-                    // Prepare the request payload
+                    // Prepare the request payload with the actual image data
                     const payload = {
-                        image_base64: base64Image,
-                        preset: "auto_enhance"
+                        image_base64: base64Image
                     };
                     
-                    console.log('Sending image to Deep Image API for enhancement...');
+                    console.log(`Sending image data for enhancement (${base64Image.length} chars)`);
                     
                     // Make the API call
                     return fetch(apiEndpoint, {
                         method: 'POST',
                         headers: {
-                            "X-API-KEY": apiKey,
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify(payload)
@@ -1749,18 +1563,11 @@
                         return response.json();
                     })
                     .then(data => {
-                        console.log('API response received:', data);
+                        console.log('API response received');
                         
                         // Extract the enhanced image data from the response
                         if (data.result && data.result.image_base64) {
                             return data.result.image_base64;
-                        } else if (data.image_base64) {
-                            return data.image_base64;
-                        } else if (data.result && data.result.url) {
-                            // If we got a URL instead of base64, fetch the image
-                            return this.fetchImageAsBase64(data.result.url);
-                        } else if (data.url) {
-                            return this.fetchImageAsBase64(data.url);
                         } else {
                             console.error('Unexpected API response format:', data);
                             throw new Error('No enhanced image data in API response');

@@ -195,15 +195,18 @@ async function handleDeepImageAPICall(req, res) {
     }
     // If we have a local file (either uploaded or created from base64), we need to convert it to a URL
     else if (req.tempFilePath) {
-      console.log('Creating a proper URL for the local file:', req.tempFilePath);
+      console.log('Converting local file to base64 for Deep Image API:', req.tempFilePath);
       tempFilePath = req.tempFilePath;
       
-      // Generate a proper URL for the temporary file using the /temp-uploads route
-      const fileName = path.basename(req.tempFilePath);
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      imageUrl = `${baseUrl}/temp-uploads/${fileName}`;
+      // Read the file and convert to base64
+      const fileBuffer = fs.readFileSync(req.tempFilePath);
+      const base64Data = fileBuffer.toString('base64');
       
-      console.log('Created proper URL for local file:', imageUrl);
+      // Create a base64 URL in the format expected by Deep Image API
+      // Note: They expect "base64," prefix rather than full data URL format
+      imageUrl = `base64,${base64Data}`;
+      
+      console.log('Created base64 string for Deep Image API');
     } else {
       throw new Error('No valid image source provided (no URL or file)');
     }
@@ -213,36 +216,18 @@ async function handleDeepImageAPICall(req, res) {
       url: imageUrl,
       max_length: 4096,
       enhancements: [
-        'denoise',
-        'face_enhance', 
-        'deblur',
-        'color',
-        'light',
-        'white_balance',
-        'exposure_correction'
+        "face_enhance"
       ],
-      light_parameters: {
-        type: 'hdr_light_advanced',
-        level: 1
-      },
-      color_parameters: {
-        type: 'contrast',
-        level: 0.5
-      },
-      white_balance_parameters: {
-        level: 0.25
-      },
-      deblur_parameters: {
-        type: 'v2'
-      },
-      denoise_parameters: {
-        type: 'v2'
+      face_enhance_parameters: {
+        type: "beautify-real",
+        level: 0.8,
+        smoothing_level: 0.1
       },
       output_format: 'jpg'
     };
     
     // Step 3: Make the API call using JSON (the documented approach)
-    console.log('Sending image URL to Deep Image API via JSON payload');
+    console.log('Sending image data to Deep Image API via JSON payload');
     const response = await axios.post(apiEndpoint, jsonPayload, {
       headers: {
         'X-API-KEY': apiKey,

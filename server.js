@@ -178,89 +178,32 @@ app.post('/api/enhance-image', async (req, res) => {
 // Function to handle the actual API call to Deep Image
 async function handleDeepImageAPICall(req, res) {
   try {
-    console.log('Sending image to Deep Image API for enhancement...');
+    console.log('Starting enhancement workflow with Deep Image API...');
     const apiKey = DEEP_IMAGE_API_KEY;
-    
-    // API endpoint from the documentation
     const apiEndpoint = 'https://deep-image.ai/rest_api/process_result';
     
-    // Create a basic JSON structure that works with this API
-    // After multiple experiments, we know this API only works with specific formats
-    let requestConfig = {
-      method: 'post',
-      url: apiEndpoint,
-      headers: {
-        'X-API-KEY': apiKey,
-        // Start with application/json as the default
-        'Content-Type': 'application/json'
-      },
-      timeout: 60000,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity
-    };
+    // Step 1: Get or generate an image URL (this is the simplified workflow)
+    let imageUrl;
     
-    // The enhancement parameters are consistent regardless of upload method
-    const enhancementOptions = {
-      max_length: 4096,
-      enhancements: ['denoise', 'face_enhance', 'deblur', 'color', 'light', 'white_balance', 'exposure_correction'],
-      light_parameters: { type: 'hdr_light_advanced', level: 1 },
-      color_parameters: { type: 'contrast', level: 0.5 },
-      white_balance_parameters: { level: 0.25 },
-      deblur_parameters: { type: 'v2' },
-      denoise_parameters: { type: 'v2' }
-    };
-    
-    // Handle the three possible input types with the simplest viable approach for each
-    let response;
-    
-    // CASE 1: We have a URL
+    // If we already have an image URL in the request, use it directly
     if (req.body && req.body.imageUrl) {
-      console.log('Using URL-based approach with:', req.body.imageUrl);
-      
-      // Create simple JSON payload with URL
-      const payload = {
-        url: req.body.imageUrl,
-        ...enhancementOptions
-      };
-      
-      requestConfig.data = payload;
-      console.log('Making JSON API call with URL parameter');
-      response = await axios(requestConfig);
+      console.log('Using provided image URL:', req.body.imageUrl);
+      imageUrl = req.body.imageUrl;
     }
-    // CASE 2: We have a local file
+    // If we have a local file (either uploaded or created from base64), we need to convert it to a URL
+    // Since we don't have a built-in way to host files as URLs, we'll use a data URL
     else if (req.tempFilePath) {
-      console.log('Using file-based approach from:', req.tempFilePath);
+      console.log('Converting local file to data URL:', req.tempFilePath);
       
-      // This API works best with FormData for file uploads
-      const FormData = require('form-data');
-      const formData = new FormData();
+      // Read the file and convert to base64
+      const fileBuffer = fs.readFileSync(req.tempFilePath);
+      const base64Data = fileBuffer.toString('base64');
       
-      // Add the file
-      const fileStream = fs.createReadStream(req.tempFilePath);
-      formData.append('file', fileStream);
+      // Create a data URL
+      const fileType = path.extname(req.tempFilePath).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
+      imageUrl = `data:${fileType};base64,${base64Data}`;
       
-      // Add all enhancement parameters as flat fields (this format works best)
-      formData.append('max_length', '4096');
-      formData.append('enhancements', enhancementOptions.enhancements.join(','));
-      
-      // Add individual enhancement parameters
-      formData.append('light_type', enhancementOptions.light_parameters.type);
-      formData.append('light_level', enhancementOptions.light_parameters.level);
-      formData.append('color_type', enhancementOptions.color_parameters.type);
-      formData.append('color_level', enhancementOptions.color_parameters.level);
-      formData.append('white_balance_level', enhancementOptions.white_balance_parameters.level);
-      formData.append('deblur_type', enhancementOptions.deblur_parameters.type);
-      formData.append('denoise_type', enhancementOptions.denoise_parameters.type);
-      
-      // Update request config for FormData
-      requestConfig.headers = {
-        ...requestConfig.headers,
-        ...formData.getHeaders()
-      };
-      requestConfig.data = formData;
-      
-      console.log('Making FormData API call with file upload');
-      response = await axios(requestConfig);
+      console.log('Created data URL from local file');
       
       // Clean up temporary file after use
       try {
@@ -269,13 +212,56 @@ async function handleDeepImageAPICall(req, res) {
       } catch (unlinkError) {
         console.error('Error deleting temporary file:', unlinkError);
       }
-    }
-    // ERROR CASE: No valid input
-    else {
+    } else {
       throw new Error('No valid image source provided (no URL or file)');
     }
     
-    // Process the successful API response
+    // Step 2: Prepare the JSON payload for the API call (following the documentation example)
+    const jsonPayload = {
+      url: imageUrl,
+      max_length: 4096,
+      enhancements: [
+        'denoise',
+        'face_enhance', 
+        'deblur',
+        'color',
+        'light',
+        'white_balance',
+        'exposure_correction'
+      ],
+      light_parameters: {
+        type: 'hdr_light_advanced',
+        level: 1
+      },
+      color_parameters: {
+        type: 'contrast',
+        level: 0.5
+      },
+      white_balance_parameters: {
+        level: 0.25
+      },
+      deblur_parameters: {
+        type: 'v2'
+      },
+      denoise_parameters: {
+        type: 'v2'
+      },
+      output_format: 'jpg'
+    };
+    
+    // Step 3: Make the API call using JSON (the documented approach)
+    console.log('Sending image URL to Deep Image API via JSON payload');
+    const response = await axios.post(apiEndpoint, jsonPayload, {
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+    
+    // Step 4: Process the API response
     console.log('Received response from Deep Image API with status:', response.status);
     console.log('Response details:', JSON.stringify(response.data, null, 2));
     

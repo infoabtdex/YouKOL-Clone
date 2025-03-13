@@ -566,4 +566,363 @@ button:active {
     #fullscreen-image {
         touch-action: manipulation;
     }
+}
+
+/* Comparison view styles */
+.comparison-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+@media (min-width: 768px) {
+    .comparison-container {
+        flex-direction: row;
+    }
+}
+
+.comparison-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.comparison-side img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.comparison-side::after {
+    content: attr(data-label);
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+/* Improved comparison button styles */
+.comparison-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.comparison-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.comparison-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Enhancement label */
+.enhancement-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(92, 122, 234, 0.8); /* secondary color */
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    z-index: 5;
+}
+
+/* Divider for comparison view */
+.comparison-divider {
+    width: 100%;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .comparison-divider {
+        width: 2px;
+        height: 100%;
+    }
+}
+
+/* Slider-based comparison view */
+.comparison-slider-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+}
+
+.comparison-img {
+    position: absolute;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.comparison-img-before {
+    z-index: 1;
+}
+
+.comparison-img-after-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%; /* Full width container instead of 50% */
+    height: 100%;
+    overflow: hidden;
+    z-index: 2;
+    /* Use clip-path to reveal only a portion */
+    clip-path: inset(0 50% 0 0); /* Initially show left 50% */
+}
+
+.comparison-img-after {
+    position: absolute;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.slider-handle-container {
+    position: absolute;
+    top: 0;
+    left: 50%; /* Initial position */
+    width: 0;
+    height: 100%;
+    z-index: 5;
+}
+
+.slider-handle {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #E9756B, #F19A94);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ew-resize;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 10;
+    overflow: visible;
+}
+
+.slider-handle:hover, .slider-handle.active {
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 6px 12px rgba(0, 0, 0, 0.4);
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+.slider-line {
+    position: absolute;
+    width: 2px;
+    height: 100vh; /* Extra long to cover entire screen */
+    background-color: white;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1; /* Lower z-index to prevent conflicts */
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+    pointer-events: none; /* Prevents line from interfering with slider handle */
+}
+
+.slider-arrow {
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.slider-arrow-left {
+    left: 6px;
+}
+
+.slider-arrow-right {
+    right: 6px;
+}
+
+.comparison-label {
+    position: absolute;
+    padding: 6px 12px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 20px;
+    z-index: 4;
+    top: 60px; /* Move down to avoid overlapping with top controls */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.comparison-label-before {
+    left: 20px;
+    background-color: rgba(92, 122, 234, 0.8); /* Secondary color for After */
+}
+
+.comparison-label-after {
+    right: 20px;
+    background-color: rgba(233, 117, 107, 0.8); /* Primary color for Before */
+}
+
+/* Responsive adjustments for the slider */
+@media (max-width: 640px) {
+    .slider-handle {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .slider-arrow svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .comparison-label {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+}
+
+/* Batch enhancement styles */
+.batch-enhancement-status {
+    font-size: 0.875rem;
+    color: var(--secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.batch-enhancement-status .count {
+    font-weight: 600;
+}
+
+.enhancement-progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.enhancement-progress-bar-inner {
+    height: 100%;
+    border-radius: 2px;
+    background-color: var(--secondary);
+    transition: width 0.3s ease;
+}
+
+.enhancement-error-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: #EF4444;
+    color: white;
+    border-radius: 50%;
+    padding: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+/* Modal dialog for batch enhancement summary */
+.batch-summary-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.batch-summary-content {
+    background-color: white;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 100%;
+    padding: 1.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.batch-summary-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-dark);
+}
+
+.batch-summary-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 1.5rem;
+}
+
+.batch-stat {
+    text-align: center;
+}
+
+.batch-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.batch-stat-label {
+    font-size: 0.875rem;
+    color: var(--text-light);
+}
+
+.success-value {
+    color: var(--accent);
+}
+
+.error-value {
+    color: #EF4444;
+}
+
+.pending-value {
+    color: var(--secondary);
 } 

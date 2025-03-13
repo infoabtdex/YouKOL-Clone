@@ -1,69 +1,173 @@
-# ImaKOL
+# YouKOL Clone
 
-A lightweight mobile web app for capturing and sharing moments. This application features a clean, modern UI and allows users to capture photos and videos directly from their device.
+A standalone web application that provides image enhancement capabilities through a proxy server, built with Express.js and vanilla JavaScript.
 
 ## Features
 
-- Modern responsive design optimized for mobile devices
-- Camera capture functionality
-- Multiple image and video upload capability
-- Media preview with gallery view
-- AI-assisted caption generation
-- Native sharing integration
-- Simple Node.js backend handling both API requests and serving the frontend
+- Image enhancement and processing
+- CORS-enabled API proxy server
+- File upload handling
+- Environment-based configuration
+- Simple and lightweight deployment
 
-## Quick Start
+## Prerequisites
 
-1. Configure your environment:
+- Node.js (v14 or higher)
+- npm (Node Package Manager)
+- Git
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/YouKOL-Clone.git
+cd YouKOL-Clone
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create a `.env` file in the root directory:
+```bash
+DEEP_IMAGE_API_KEY=your_api_key_here
+GROK_API_KEY=your_grok_api_key_here
+PORT=3000
+ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+```
+
+## Development
+
+To run the application in development mode with hot-reloading:S
+
+```bash
+npm run dev
+```
+
+## Production Deployment
+
+### Option 1: Direct Server Deployment
+
+1. **Prepare your server**
+   - Set up a Linux server (Ubuntu/Debian recommended)
+   - Install Node.js and npm
+   - Install PM2 (process manager) globally:
+     ```bash
+     npm install -g pm2
+     ```
+
+2. **Deploy the application**
    ```bash
-   # Copy example configuration
+   # Clone the repository
+   git clone https://github.com/yourusername/YouKOL-Clone.git
+   cd YouKOL-Clone
+
+   # Install dependencies
+   npm install --production
+
+   # Set up environment variables
    cp .env.example .env
+   # Edit .env with your production values
+
+   # Start the application with PM2
+   pm2 start server.js --name "youkol-clone"
    
-   # Edit .env file if needed (change port)
+   # Ensure PM2 starts on system reboot
+   pm2 startup
+   pm2 save
    ```
 
-2. Start the server:
-   ```bash
-   npm install
-   npm start
+3. **Set up Nginx as a reverse proxy**
+   ```nginx
+   server {
+       listen 80;
+       server_name yourdomain.com;
+
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
    ```
 
-3. Access the application:
-   - Open `http://localhost:PORT` in your browser (replace PORT with the value in your .env file)
-   - For mobile access on the same network, use your computer's IP address shown in the console
+### Option 2: Docker Deployment
 
-### Alternative Frontend Setup
+1. **Create a Dockerfile in the project root**:
+```dockerfile
+FROM node:16-alpine
 
-If you prefer to serve the frontend separately, you can use any HTTP server:
+WORKDIR /app
 
-**Using Python:**
-```bash
-# Replace PORT with any port number of your choice
-python -m http.server PORT
+COPY package*.json ./
+RUN npm install --production
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
 ```
 
-**Using Node.js:**
+2. **Build and run the Docker container**:
 ```bash
-# Install serve once
-npm install -g serve
+# Build the image
+docker build -t youkol-clone .
 
-# Replace PORT with any port number of your choice
-serve -p PORT
+# Run the container
+docker run -d \
+  -p 3000:3000 \
+  --name youkol-clone \
+  --env-file .env \
+  youkol-clone
 ```
 
-### Configuration Notes
+### Option 3: Cloud VM Deployment (e.g., DigitalOcean, AWS EC2, Google Cloud)
 
-- The application can run on any port of your choice (configure in .env)
-- By default, the server allows requests from any origin (ALLOWED_ORIGINS=*)
-- For better security, configure specific allowed origins in `.env`
-- The server will display all available access URLs when started
+1. Create a VM instance
+2. SSH into your instance
+3. Follow the steps from Option 1 (Direct Server Deployment)
+4. Configure your cloud provider's firewall to allow traffic on port 80/443
 
-## Requirements
+## Security Considerations
 
-- Modern browser with JavaScript enabled
-- Camera and file system permissions (for capture and upload features)
-- Node.js (v14 or higher) for running the server
+1. Always use HTTPS in production
+2. Set up proper CORS configuration in `.env`
+3. Use secure API keys and environment variables
+4. Implement rate limiting for production use
+5. Regular security updates and monitoring
+
+## Monitoring and Maintenance
+
+1. **Monitor the application**:
+```bash
+pm2 monit
+pm2 logs
+```
+
+2. **Update the application**:
+```bash
+git pull
+npm install
+pm2 restart youkol-clone
+```
+
+## Troubleshooting
+
+- Check server logs: `pm2 logs`
+- Verify environment variables are set correctly
+- Ensure all required ports are open
+- Check disk space for uploads directory
+- Verify API keys are valid
 
 ## License
 
-MIT 
+[Your License Here]
+
+## Support
+
+For issues and feature requests, please create an issue in the repository. 

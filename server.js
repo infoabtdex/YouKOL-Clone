@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // API Keys - Securely loaded from environment variables
-const DEEP_IMAGE_API_KEY = process.env.DEEP_IMAGE_API_KEY || '1ae78530-b772-11ef-af6d-2989c59e815d';
+const DEEP_IMAGE_API_KEY = process.env.DEEP_IMAGE_API_KEY;
 const GROK_API_KEY = process.env.GROK_API_KEY;
 
 // Log API key status (truncated for security)
@@ -182,7 +182,7 @@ async function handleDeepImageAPICall(req, res) {
   try {
     console.log('Starting enhancement workflow with Deep Image API...');
     const apiKey = DEEP_IMAGE_API_KEY;
-    const apiEndpoint = 'https://deep-image.ai/rest_api/process_result';
+    const apiEndpoint = 'https://api.deep-image.ai/rest_api/process_result';
     
     // Step 1: Get or generate an image URL (this is the simplified workflow)
     let imageUrl;

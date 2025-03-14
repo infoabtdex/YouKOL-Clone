@@ -5,6 +5,7 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
+const logger = require('./logger');
 
 // Load environment variables
 dotenv.config();
@@ -18,22 +19,22 @@ const DEEP_IMAGE_API_KEY = process.env.DEEP_IMAGE_API_KEY;
 const GROK_API_KEY = process.env.GROK_API_KEY;
 
 // Log API key status (truncated for security)
-console.log('\n🔑 API Key Configuration:');
-console.log(`Deep Image API Key: ${DEEP_IMAGE_API_KEY ? DEEP_IMAGE_API_KEY.substring(0, 8) + '...' : 'NOT SET ⚠️'}`);
-console.log(`Grok API Key: ${GROK_API_KEY ? GROK_API_KEY.substring(0, 8) + '...' : 'NOT SET ⚠️'}`);
+logger.info('🔑 API Key Configuration:');
+logger.info(`Deep Image API Key: ${DEEP_IMAGE_API_KEY ? DEEP_IMAGE_API_KEY.substring(0, 8) + '...' : 'NOT SET ⚠️'}`);
+logger.info(`Grok API Key: ${GROK_API_KEY ? GROK_API_KEY.substring(0, 8) + '...' : 'NOT SET ⚠️'}`);
 
 // Setup CORS for cross-origin requests
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
   : ['*']; // Default to allow all origins if not specified
 
-console.log('\n📋 CORS Configuration:');
+logger.info('📋 CORS Configuration:');
 if (allowedOrigins.includes('*')) {
-  console.log('⚠️ All origins allowed - this is not recommended for production');
-  console.log('\nTo configure allowed origins, update the ALLOWED_ORIGINS variable in your .env file');
+  logger.warn('⚠️ All origins allowed - this is not recommended for production');
+  logger.info('\nTo configure allowed origins, update the ALLOWED_ORIGINS variable in your .env file');
 } else {
-  console.log('✅ CORS configured to allow only the following origins:');
-  allowedOrigins.forEach(origin => console.log(`  - ${origin}`));
+  logger.info('✅ CORS configured to allow only the following origins:');
+  allowedOrigins.forEach(origin => logger.info(`  - ${origin}`));
 }
 
 // Create uploads directory if it doesn't exist
@@ -55,7 +56,7 @@ app.use(cors({
     
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = `CORS Error: This server does not allow access from origin ${origin}. Update ALLOWED_ORIGINS in .env file.`;
-      console.error(`❌ ${msg}`);
+      logger.error(`❌ ${msg}`);
       return callback(new Error(msg), false);
     }
     return callback(null, true);
@@ -115,7 +116,7 @@ app.post('/api/enhance-image', async (req, res) => {
   try {
     // Check if we have base64 image data
     if (req.body && req.body.image_base64) {
-      console.log('Received base64 image data');
+      logger.info('Received base64 image data');
       
       // Create a temporary file from the base64 data
       const imageData = req.body.image_base64;
@@ -131,7 +132,7 @@ app.post('/api/enhance-image', async (req, res) => {
       // Create a temporary file
       const tempFilePath = path.join(uploadDir, `temp-${Date.now()}.jpg`);
       fs.writeFileSync(tempFilePath, Buffer.from(base64Data, 'base64'));
-      console.log(`Created temporary file from base64 data: ${tempFilePath}`);
+      logger.info(`Created temporary file from base64 data: ${tempFilePath}`);
       
       // Set the file path for the API call
       req.tempFilePath = tempFilePath;
@@ -139,13 +140,13 @@ app.post('/api/enhance-image', async (req, res) => {
     } 
     // Check if we have imageUrl in the request body
     else if (req.body && req.body.imageUrl) {
-      console.log('Received image URL via JSON');
+      logger.info('Received image URL via JSON');
       await handleDeepImageAPICall(req, res);
     } else {
       // For form uploads, use multer
       upload.single('image')(req, res, async function(err) {
         if (err) {
-          console.error('Error in file upload:', err);
+          logger.error('Error in file upload:', err);
           return res.status(400).json({ 
             status: 'error', 
             message: err.message 
@@ -153,14 +154,14 @@ app.post('/api/enhance-image', async (req, res) => {
         }
         
         if (!req.file) {
-          console.error('No file uploaded, no image_base64, and no imageUrl in request body');
+          logger.error('No file uploaded, no image_base64, and no imageUrl in request body');
           return res.status(400).json({ 
             status: 'error', 
             message: 'Please provide either imageUrl, image_base64, or upload a file' 
           });
         }
         
-        console.log('File uploaded successfully:', req.file.path);
+        logger.info('File uploaded successfully:', req.file.path);
         
         // Set the file path for the API call
         req.tempFilePath = req.file.path;
@@ -168,7 +169,7 @@ app.post('/api/enhance-image', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error in enhance-image endpoint:', error);
+    logger.error('Error in enhance-image endpoint:', error);
     res.status(500).json({
       status: 'error',
       message: 'Server error processing the image',
@@ -180,7 +181,7 @@ app.post('/api/enhance-image', async (req, res) => {
 // Function to handle the actual API call to Deep Image
 async function handleDeepImageAPICall(req, res) {
   try {
-    console.log('Starting enhancement workflow with Deep Image API...');
+    logger.info('Starting enhancement workflow with Deep Image API...');
     const apiKey = DEEP_IMAGE_API_KEY;
     const apiEndpoint = 'https://api.deep-image.ai/rest_api/process_result';
     
@@ -190,12 +191,12 @@ async function handleDeepImageAPICall(req, res) {
     
     // If we already have an image URL in the request, use it directly
     if (req.body && req.body.imageUrl) {
-      console.log('Using provided image URL:', req.body.imageUrl);
+      logger.info('Using provided image URL:', req.body.imageUrl);
       imageUrl = req.body.imageUrl;
     }
     // If we have a local file (either uploaded or created from base64), we need to convert it to a URL
     else if (req.tempFilePath) {
-      console.log('Converting local file to base64 for Deep Image API:', req.tempFilePath);
+      logger.info('Converting local file to base64 for Deep Image API:', req.tempFilePath);
       tempFilePath = req.tempFilePath;
       
       // Read the file and convert to base64
@@ -206,7 +207,7 @@ async function handleDeepImageAPICall(req, res) {
       // Note: They expect "base64," prefix rather than full data URL format
       imageUrl = `base64,${base64Data}`;
       
-      console.log('Created base64 string for Deep Image API');
+      logger.info('Created base64 string for Deep Image API');
     } else {
       throw new Error('No valid image source provided (no URL or file)');
     }
@@ -227,7 +228,7 @@ async function handleDeepImageAPICall(req, res) {
     };
     
     // Step 3: Make the API call using JSON (the documented approach)
-    console.log('Sending image data to Deep Image API via JSON payload');
+    logger.info('Sending image data to Deep Image API via JSON payload');
     const response = await axios.post(apiEndpoint, jsonPayload, {
       headers: {
         'X-API-KEY': apiKey,
@@ -239,19 +240,19 @@ async function handleDeepImageAPICall(req, res) {
     });
     
     // Step 4: Process the API response
-    console.log('Received response from Deep Image API with status:', response.status);
-    console.log('Response details:', JSON.stringify(response.data, null, 2));
+    logger.info('Received response from Deep Image API with status:', response.status);
+    logger.info('Response details:', JSON.stringify(response.data, null, 2));
     
     // Handle the response
     if (response.data.result_url) {
-      console.log('Found image URL in result_url, fetching:', response.data.result_url);
+      logger.info('Found image URL in result_url, fetching:', response.data.result_url);
       const imageResponse = await axios.get(response.data.result_url, {
         responseType: 'arraybuffer'
       });
       
       // Convert to base64
       const enhancedImageData = Buffer.from(imageResponse.data, 'binary').toString('base64');
-      console.log('Successfully fetched and converted enhanced image');
+      logger.info('Successfully fetched and converted enhanced image');
       
       // Return the enhanced image data
       res.json({
@@ -262,7 +263,7 @@ async function handleDeepImageAPICall(req, res) {
         }
       });
     } else {
-      console.error('No result_url in API response:', response.data);
+      logger.error('No result_url in API response:', response.data);
       throw new Error('No enhanced image URL in API response');
     }
     
@@ -270,19 +271,19 @@ async function handleDeepImageAPICall(req, res) {
     if (tempFilePath) {
       try {
         fs.unlinkSync(tempFilePath);
-        console.log('Temporary file deleted:', tempFilePath);
+        logger.info('Temporary file deleted:', tempFilePath);
       } catch (unlinkError) {
-        console.error('Error deleting temporary file:', unlinkError);
+        logger.error('Error deleting temporary file:', unlinkError);
       }
     }
   } catch (error) {
-    console.error('Error calling Deep Image API:', error);
+    logger.error('Error calling Deep Image API:', error);
     
     // Log detailed error information
     if (error.response) {
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
-      console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+      logger.error('Response status:', error.response.status);
+      logger.error('Response headers:', error.response.headers);
+      logger.error('Response data:', JSON.stringify(error.response.data, null, 2));
     }
     
     // Send detailed error response
@@ -344,7 +345,7 @@ app.post('/api/generate-caption', async (req, res) => {
       ]
     };
     
-    console.log('Sending request to Grok Vision API...');
+    logger.info('Sending request to Grok Vision API...');
     
     // Call Grok API with X.AI endpoint
     const response = await axios.post('https://api.x.ai/v1/chat/completions', {
@@ -358,14 +359,14 @@ app.post('/api/generate-caption', async (req, res) => {
     
     // Check for valid response
     if (!response.data.choices || !response.data.choices[0]?.message?.content) {
-      console.error('Invalid response format from Grok API:', response.data);
+      logger.error('Invalid response format from Grok API:', response.data);
       return res.status(500).json({
         status: 'error',
         message: 'Invalid response format from Grok API'
       });
     }
     
-    console.log('Caption generated successfully');
+    logger.info('Caption generated successfully');
     
     // Return the generated caption
     res.json({
@@ -376,7 +377,7 @@ app.post('/api/generate-caption', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error in generate-caption endpoint:', error);
+    logger.error('Error in generate-caption endpoint:', error);
     
     let statusCode = 500;
     let errorMessage = 'Server error generating caption';
@@ -385,7 +386,7 @@ app.post('/api/generate-caption', async (req, res) => {
     if (error.response) {
       statusCode = error.response.status;
       errorMessage = `Grok API error: ${error.response.status} ${error.response.statusText}`;
-      console.error('Grok API response:', error.response.data);
+      logger.error('Grok API response:', error.response.data);
     }
     
     res.status(statusCode).json({
@@ -426,7 +427,7 @@ app.get('/api/test-grok', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error(err.stack);
   
   if (err.message === 'Only image and video files are allowed!') {
     return res.status(400).json({
@@ -440,6 +441,20 @@ app.use((err, req, res, next) => {
     message: 'Something went wrong on the server',
     error: err.message
   });
+});
+
+// Global error handlers for uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  // Give the logger time to write before exiting
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // We don't exit the process here as it's less severe
 });
 
 // Start the server
@@ -457,21 +472,21 @@ app.listen(PORT, () => {
     });
   });
   
-  console.log(`\n🚀 Server running on port ${PORT}`);
+  logger.info(`\n🚀 Server running on port ${PORT}`);
   
-  console.log(`\n🌐 Access your application at:`);
-  console.log(`  http://localhost:${PORT}`);
+  logger.info(`\n🌐 Access your application at:`);
+  logger.info(`  http://localhost:${PORT}`);
   
   if (addresses.length > 0) {
-    console.log(`\n📱 Network access (same WiFi/LAN):`);
+    logger.info(`\n📱 Network access (same WiFi/LAN):`);
     addresses.forEach(address => {
-      console.log(`  http://${address}:${PORT}`);
+      logger.info(`  http://${address}:${PORT}`);
     });
   }
   
-  console.log(`\n⚙️ Configuration tips:`);
-  console.log(`  - CORS is ${allowedOrigins.includes('*') ? 'allowing all origins' : 'restricted to specific origins'}`);
-  console.log(`  - Deep Image API ${DEEP_IMAGE_API_KEY ? 'key is configured' : 'key is MISSING'}`);
-  console.log(`  - Grok Vision API ${GROK_API_KEY ? 'key is configured' : 'key is MISSING'}`);
-  console.log(`  - The server can be configured in the .env file`);
+  logger.info(`\n⚙️ Configuration tips:`);
+  logger.info(`  - CORS is ${allowedOrigins.includes('*') ? 'allowing all origins' : 'restricted to specific origins'}`);
+  logger.info(`  - Deep Image API ${DEEP_IMAGE_API_KEY ? 'key is configured' : 'key is MISSING'}`);
+  logger.info(`  - Grok Vision API ${GROK_API_KEY ? 'key is configured' : 'key is MISSING'}`);
+  logger.info(`  - The server can be configured in the .env file`);
 }); 

@@ -29,13 +29,40 @@ cd YouKOL-Clone
 npm install
 ```
 
-3. Create a `.env` file in the root directory:
+3. Set up your environment configuration:
 ```bash
+# Copy the example configuration file
+cp .env.example .env
+
+# Edit the .env file with your API keys and settings
+nano .env  # or use your preferred text editor
+```
+
+The `.env` file requires at minimum:
+```
 DEEP_IMAGE_API_KEY=your_api_key_here
 GROK_API_KEY=your_grok_api_key_here
-PORT=3000
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 ```
+
+See `.env.example` for a complete list of configuration options with documentation.
+
+## Logging
+
+The application uses Winston logger for comprehensive logging:
+
+- All logs are stored in the `logs` directory
+- Log files are automatically rotated (5MB max size, 5 files max)
+- Different log levels: error, warn, info, debug
+- Configure the log level in the `.env` file:
+  ```
+  LOG_LEVEL=info  # Options: error, warn, info, debug
+  ```
+
+Log files created:
+- `combined.log`: Contains all log messages
+- `error.log`: Contains only error messages
+- `exceptions.log`: Records uncaught exceptions
+- `rejections.log`: Records unhandled promise rejections
 
 ## Development
 

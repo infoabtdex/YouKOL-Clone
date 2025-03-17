@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./logger');
+const jwt = require('jsonwebtoken');
 
 // Fix PocketBase import - use dynamic import
 let pb; // Declare pb variable in the global scope
@@ -227,14 +228,49 @@ app.post('/api/auth/login', async (req, res) => {
 // Logout endpoint
 app.post('/api/auth/logout', (req, res) => {
   try {
-    // Clear the auth store if PocketBase is initialized
+    // Clear the auth store
     if (pb) {
       pb.authStore.clear();
     }
-    return res.status(200).json({ message: 'Logged out successfully' });
+    res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Logout failed', error: error.message });
+  }
+});
+
+// Token refresh endpoint
+app.post('/api/auth/refresh', authMiddleware, async (req, res) => {
+  try {
+    // The authMiddleware has already validated the token
+    // If we got here, the token is still valid, so we can just generate a new one
+    
+    const userId = req.user.id;
+    
+    // Get the current user data from PocketBase to ensure it's up to date
+    const user = await pb.collection('users').getOne(userId);
+    
+    // Create a new token with the same user information but extended expiration
+    const token = jwt.sign({ 
+      id: user.id,
+      email: user.email,
+      isNew: user.isNew || false
+    }, 
+    process.env.JWT_SECRET || 'your-secret-key', 
+    { expiresIn: '7d' }); // Extend token expiration to 7 days
+    
+    // Return the new token
+    return res.status(200).json({ 
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        isNew: user.isNew || false
+      }
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return res.status(401).json({ message: 'Token refresh failed', error: error.message });
   }
 });
 

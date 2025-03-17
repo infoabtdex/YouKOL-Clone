@@ -1290,7 +1290,7 @@
                         clearTimeout(this.tokenValidationTimeout);
                     }
                     
-                    // Check token validity every 10 minutes (600000 ms)
+                    // Check token validity every 5 minutes (300000 ms) instead of 10 minutes
                     this.tokenValidationTimeout = setTimeout(async () => {
                         try {
                             await this.validateToken();
@@ -1300,7 +1300,42 @@
                                 this.setupTokenValidation();
                             }
                         }
-                    }, 600000);
+                    }, 300000);
+                },
+                
+                // Try to refresh the token when it's expired
+                async refreshToken() {
+                    try {
+                        const token = this.getAuthToken();
+                        if (!token) {
+                            return false;
+                        }
+                        
+                        const response = await fetch('/api/auth/refresh', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            return false;
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.token) {
+                            // Update the token in localStorage
+                            localStorage.setItem('auth_token', data.token);
+                            return true;
+                        }
+                        
+                        return false;
+                    } catch (error) {
+                        console.error('Token refresh error:', error);
+                        return false;
+                    }
                 },
                 
                 // Validate the current token
@@ -1321,6 +1356,15 @@
                         
                         // Handle different error scenarios
                         if (response.status === 401 || response.status === 403) {
+                            // Try to refresh the token first
+                            const refreshed = await this.refreshToken();
+                            
+                            if (refreshed) {
+                                // Token was refreshed successfully, consider it valid
+                                return true;
+                            }
+                            
+                            // If refresh failed, consider token invalid
                             const errorData = await response.json();
                             this.handleInvalidToken(errorData.message || 'Token validation failed');
                             return false;
@@ -1446,6 +1490,29 @@
                         
                         // Handle specific error cases
                         if (response.status === 401 || response.status === 403) {
+                            // Try to refresh the token first
+                            const refreshed = await this.refreshToken();
+                            
+                            if (refreshed) {
+                                // Token was refreshed, try the request again with the new token
+                                const newToken = this.getAuthToken();
+                                const retryResponse = await fetch('/api/preferences', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${newToken}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(payload)
+                                });
+                                
+                                if (retryResponse.ok) {
+                                    const data = await retryResponse.json();
+                                    this.userPreferences = data.preferences;
+                                    return data;
+                                }
+                            }
+                            
+                            // If refresh failed or retry failed, handle as invalid token
                             const errorData = await response.json();
                             this.handleInvalidToken(errorData.message || 'Token validation failed');
                             throw new Error('Authentication failed');

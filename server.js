@@ -106,6 +106,12 @@ app.use(express.json({ limit: '10mb' }));  // Increased limit for base64 images
 // Serve static files from the current directory (for development)
 app.use(express.static(__dirname));
 
+// Serve service worker with the correct MIME type
+app.get('/service-worker.js', (req, res) => {
+  res.set('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'service-worker.js'));
+});
+
 // Serve index.html at the root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

@@ -7,16 +7,37 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('./logger');
 
+// Fix PocketBase import - use dynamic import
+let pb; // Declare pb variable in the global scope
+
 // Load environment variables
 dotenv.config();
 
-// Initialize Express app
-const app = express();
+// Environment variables
 const PORT = process.env.PORT || 3000;
-
-// API Keys - Securely loaded from environment variables
 const DEEP_IMAGE_API_KEY = process.env.DEEP_IMAGE_API_KEY;
 const GROK_API_KEY = process.env.GROK_API_KEY;
+
+// Initialize Express app
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Initialize PocketBase asynchronously
+async function initPocketBase() {
+  try {
+    // Dynamic import for ES modules
+    const PocketBase = (await import('pocketbase')).default;
+    pb = new PocketBase('http://127.0.0.1:8090');
+    console.log('PocketBase initialized successfully');
+    return pb;
+  } catch (error) {
+    console.error('Error initializing PocketBase:', error);
+    throw error;
+  }
+}
 
 // Log API key status (truncated for security)
 logger.info('🔑 API Key Configuration:');
@@ -100,15 +121,236 @@ const upload = multer({
   }
 });
 
-// Parse JSON body
-app.use(express.json({ limit: '10mb' }));  // Increased limit for base64 images
-
 // Serve static files from the current directory (for development)
 app.use(express.static(__dirname));
 
 // Serve index.html at the root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Authentication middleware
+const authMiddleware = async (req, res, next) => {
+  try {
+    // Ensure PocketBase is initialized
+    if (!pb) {
+      await initPocketBase();
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authentication required', errorCode: 'AUTH_REQUIRED' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Invalid token format', errorCode: 'INVALID_TOKEN_FORMAT' });
+    }
+
+    // Clear any previous authentication state
+    pb.authStore.clear();
+    
+    try {
+      // Store the token in the client instance
+      pb.authStore.save(token);
+      
+      // If the token is invalid or expired, this will throw an error
+      if (!pb.authStore.isValid) {
+        throw new Error('Invalid token');
+      }
+      
+      // Validate user ID exists in the token model
+      if (!pb.authStore.model || !pb.authStore.model.id) {
+        throw new Error('Invalid user identity in token');
+      }
+      
+      // Set the user on the request object
+      req.user = pb.authStore.model;
+      next();
+    } catch (error) {
+      pb.authStore.clear();
+      console.error('Token validation error:', error);
+      
+      // Determine specific error type for better client handling
+      let errorCode = 'INVALID_TOKEN';
+      let statusCode = 401;
+      let message = 'Invalid or expired token';
+      
+      if (error.status === 403) {
+        errorCode = 'FORBIDDEN';
+        statusCode = 403;
+        message = 'You do not have permission to access this resource';
+      }
+      
+      return res.status(statusCode).json({ 
+        message: message, 
+        errorCode: errorCode
+      });
+    }
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ message: 'Internal server error', errorCode: 'SERVER_ERROR' });
+  }
+};
+
+// API Routes
+
+// Login endpoint
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    // Ensure PocketBase is initialized
+    if (!pb) {
+      await initPocketBase();
+    }
+    
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    const authData = await pb.collection('users').authWithPassword(email, password);
+    
+    return res.status(200).json({
+      user: authData.record,
+      token: pb.authStore.token
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    if (error.status === 400) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Logout endpoint
+app.post('/api/auth/logout', (req, res) => {
+  try {
+    // Clear the auth store if PocketBase is initialized
+    if (pb) {
+      pb.authStore.clear();
+    }
+    return res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Signup endpoint
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    // Ensure PocketBase is initialized
+    if (!pb) {
+      await initPocketBase();
+    }
+    
+    const { email, password, passwordConfirm } = req.body;
+    
+    // Validate required fields
+    if (!email || !password || !passwordConfirm) {
+      return res.status(400).json({ 
+        message: 'Email, password and password confirmation are required' 
+      });
+    }
+    
+    // Validate password confirmation
+    if (password !== passwordConfirm) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+    
+    // Create the user with PocketBase
+    const data = {
+      email: email,
+      password: password,
+      passwordConfirm: passwordConfirm,
+      isNew: true // Flag to track new users for onboarding
+    };
+    
+    const record = await pb.collection('users').create(data);
+    
+    // Authenticate the user automatically after signup
+    const authData = await pb.collection('users').authWithPassword(email, password);
+    
+    return res.status(201).json({
+      user: authData.record,
+      token: pb.authStore.token,
+      isNew: true
+    });
+  } catch (error) {
+    console.error('Signup error:', error);
+    
+    // Handle duplicate email
+    if (error.status === 400 && error.response?.data?.email?.code === 'validation_invalid_email_unique') {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+    
+    return res.status(500).json({ 
+      message: 'Error creating user', 
+      error: error.response?.data || error.message 
+    });
+  }
+});
+
+// Save preferences endpoint (protected)
+app.post('/api/preferences', authMiddleware, async (req, res) => {
+  try {
+    const { preferences, skipped } = req.body;
+    const userId = req.user.id;
+    
+    // Log the received data
+    console.log(`Saving preferences for user ${userId}:`, { preferences, skipped });
+
+    // Prepare the preferences object based on the skipped flag
+    const preferencesData = skipped 
+      ? { skipped: true, skippedAt: new Date().toISOString() } 
+      : preferences;
+
+    // Check if the user already has preferences stored
+    const existingPrefs = await pb.collection('preferences').getList(1, 1, {
+      filter: `userId = "${userId}"`
+    });
+
+    // If preferences already exist, update them
+    if (existingPrefs.items.length > 0) {
+      const updatedPref = await pb.collection('preferences').update(existingPrefs.items[0].id, {
+        preferences: preferencesData
+      });
+      return res.status(200).json(updatedPref);
+    } 
+    // Otherwise create new preferences
+    else {
+      const newPref = await pb.collection('preferences').create({
+        userId: userId,
+        preferences: preferencesData
+      });
+      return res.status(201).json(newPref);
+    }
+  } catch (error) {
+    console.error('Save preferences error:', error);
+    return res.status(500).json({ message: 'Failed to save preferences', error: error.message });
+  }
+});
+
+// Get preferences endpoint (protected)
+app.get('/api/preferences', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const userPrefs = await pb.collection('preferences').getList(1, 1, {
+      filter: `userId = "${userId}"`
+    });
+
+    if (userPrefs.items.length === 0) {
+      return res.status(404).json({ message: 'No preferences found for this user' });
+    }
+
+    return res.status(200).json(userPrefs.items[0]);
+  } catch (error) {
+    console.error('Get preferences error:', error);
+    return res.status(500).json({ message: 'Failed to retrieve preferences', error: error.message });
+  }
 });
 
 // Enhanced endpoint for image enhancement that proxies to Deep Image API
@@ -458,35 +700,50 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
-  const interfaces = require('os').networkInterfaces();
-  const addresses = [];
-  
-  // Get all IP addresses
-  Object.keys(interfaces).forEach(interfaceName => {
-    interfaces[interfaceName].forEach(interfaceData => {
-      // Skip internal and non-IPv4 addresses
-      if (interfaceData.internal === false && interfaceData.family === 'IPv4') {
-        addresses.push(interfaceData.address);
+async function startServer() {
+  try {
+    // Initialize PocketBase before starting the server
+    await initPocketBase();
+    
+    // Start the server
+    app.listen(PORT, () => {
+      const interfaces = require('os').networkInterfaces();
+      const addresses = [];
+      
+      // Get all IP addresses
+      Object.keys(interfaces).forEach(interfaceName => {
+        interfaces[interfaceName].forEach(interfaceData => {
+          // Skip internal and non-IPv4 addresses
+          if (interfaceData.internal === false && interfaceData.family === 'IPv4') {
+            addresses.push(interfaceData.address);
+          }
+        });
+      });
+      
+      logger.info(`\n🚀 Server running on port ${PORT}`);
+      
+      logger.info(`\n🌐 Access your application at:`);
+      logger.info(`  http://localhost:${PORT}`);
+      
+      if (addresses.length > 0) {
+        logger.info(`\n📱 Network access (same WiFi/LAN):`);
+        addresses.forEach(address => {
+          logger.info(`  http://${address}:${PORT}`);
+        });
       }
+      
+      logger.info(`\n⚙️ Configuration tips:`);
+      logger.info(`  - CORS is ${allowedOrigins.includes('*') ? 'allowing all origins' : 'restricted to specific origins'}`);
+      logger.info(`  - Deep Image API ${DEEP_IMAGE_API_KEY ? 'key is configured' : 'key is MISSING'}`);
+      logger.info(`  - Grok Vision API ${GROK_API_KEY ? 'key is configured' : 'key is MISSING'}`);
+      logger.info(`  - The server can be configured in the .env file`);
+      logger.info(`  - PocketBase connected to: http://127.0.0.1:8090`);
     });
-  });
-  
-  logger.info(`\n🚀 Server running on port ${PORT}`);
-  
-  logger.info(`\n🌐 Access your application at:`);
-  logger.info(`  http://localhost:${PORT}`);
-  
-  if (addresses.length > 0) {
-    logger.info(`\n📱 Network access (same WiFi/LAN):`);
-    addresses.forEach(address => {
-      logger.info(`  http://${address}:${PORT}`);
-    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
   }
-  
-  logger.info(`\n⚙️ Configuration tips:`);
-  logger.info(`  - CORS is ${allowedOrigins.includes('*') ? 'allowing all origins' : 'restricted to specific origins'}`);
-  logger.info(`  - Deep Image API ${DEEP_IMAGE_API_KEY ? 'key is configured' : 'key is MISSING'}`);
-  logger.info(`  - Grok Vision API ${GROK_API_KEY ? 'key is configured' : 'key is MISSING'}`);
-  logger.info(`  - The server can be configured in the .env file`);
-}); 
+}
+
+// Start the server
+startServer(); 

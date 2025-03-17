@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #E9756B;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .result {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auth System Test</h1>
+    
+    <div class="card">
+        <h2>1. Test Server Status</h2>
+        <button id="testServer">Test Server Connection</button>
+        <div id="serverResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Create Test User</h2>
+        <div>
+            <label for="signupEmail">Email:</label>
+            <input type="email" id="signupEmail" value="test@example.com">
+        </div>
+        <div>
+            <label for="signupPassword">Password:</label>
+            <input type="password" id="signupPassword" value="testpassword">
+        </div>
+        <button id="signupBtn">Create User</button>
+        <div id="signupResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>3. Login Test</h2>
+        <div>
+            <label for="loginEmail">Email:</label>
+            <input type="email" id="loginEmail" value="test@example.com">
+        </div>
+        <div>
+            <label for="loginPassword">Password:</label>
+            <input type="password" id="loginPassword" value="testpassword">
+        </div>
+        <button id="loginBtn">Login</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>4. Check Authentication</h2>
+        <button id="checkAuthBtn">Check Auth Status</button>
+        <div id="checkAuthResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>5. Get Preferences (Protected Route)</h2>
+        <button id="getPrefsBtn">Get Preferences</button>
+        <div id="prefsResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>6. Logout</h2>
+        <button id="logoutBtn">Logout</button>
+        <div id="logoutResult" class="result"></div>
+    </div>
+
+    <script>
+        // Store the auth token
+        let authToken = localStorage.getItem('auth_token');
+        
+        // Test server connection
+        document.getElementById('testServer').addEventListener('click', async () => {
+            const resultEl = document.getElementById('serverResult');
+            try {
+                resultEl.textContent = 'Testing connection...';
+                const response = await fetch('http://localhost:3000/');
+                resultEl.textContent = `Server is responding! Status: ${response.status}`;
+            } catch (error) {
+                resultEl.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Signup
+        document.getElementById('signupBtn').addEventListener('click', async () => {
+            const resultEl = document.getElementById('signupResult');
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            
+            try {
+                resultEl.textContent = 'Creating user...';
+                const response = await fetch('http://localhost:3000/api/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        passwordConfirm: password
+                    })
+                });
+                
+                const data = await response.json();
+                resultEl.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('user_data', JSON.stringify(data.user));
+                }
+            } catch (error) {
+                resultEl.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const resultEl = document.getElementById('loginResult');
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                resultEl.textContent = 'Logging in...';
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                resultEl.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('user_data', JSON.stringify(data.user));
+                }
+            } catch (error) {
+                resultEl.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Check auth status
+        document.getElementById('checkAuthBtn').addEventListener('click', () => {
+            const resultEl = document.getElementById('checkAuthResult');
+            authToken = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
+            
+            if (authToken && userData) {
+                resultEl.textContent = `Authenticated: Yes\nToken: ${authToken}\nUser Data: ${userData}`;
+            } else {
+                resultEl.textContent = 'Authenticated: No';
+            }
+        });
+
+        // Get preferences (protected route)
+        document.getElementById('getPrefsBtn').addEventListener('click', async () => {
+            const resultEl = document.getElementById('prefsResult');
+            authToken = localStorage.getItem('auth_token');
+            
+            if (!authToken) {
+                resultEl.textContent = 'Error: Not authenticated. Please login first.';
+                return;
+            }
+            
+            try {
+                resultEl.textContent = 'Fetching preferences...';
+                const response = await fetch('http://localhost:3000/api/preferences', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.status === 401 || response.status === 403) {
+                    resultEl.textContent = 'Authentication error. Your token may be invalid.';
+                    return;
+                }
+                
+                const data = await response.json();
+                resultEl.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultEl.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const resultEl = document.getElementById('logoutResult');
+            
+            try {
+                resultEl.textContent = 'Logging out...';
+                const response = await fetch('http://localhost:3000/api/auth/logout', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                resultEl.textContent = JSON.stringify(data, null, 2);
+                
+                // Clear local storage
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                authToken = null;
+            } catch (error) {
+                resultEl.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Initial check of auth status
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('checkAuthBtn').click();
+        });
+    </script>
+</body>
+</html> 

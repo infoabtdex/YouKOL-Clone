@@ -53,8 +53,304 @@
         
         <!-- Main Content -->
         <div class="w-full flex-grow flex flex-col justify-center items-center pb-16">
+            <!-- Debug info - remove in production -->
+            <div class="bg-gray-100 p-2 mb-4 text-xs rounded">
+                <p x-text="'Auth Status: ' + (isAuthenticated() ? 'Authenticated' : 'Not Authenticated')"></p>
+                <p x-text="'Current State: ' + currentState"></p>
+            </div>
+            
+            <!-- Login/Logout UI -->
+            <div class="w-full flex justify-end px-4 mb-4 space-x-3" x-show="isAuthenticated()">
+                <button @click="currentState = 'settings'" class="text-secondary hover:text-primary transition-colors flex items-center px-3 py-1 rounded-lg border border-secondary hover:border-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Settings
+                </button>
+                <button @click="logout()" class="text-secondary hover:text-primary transition-colors flex items-center px-3 py-1 rounded-lg border border-secondary hover:border-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Logout
+                </button>
+            </div>
+            
+            <!-- Login Form -->
+            <div x-show="!isLoggedIn" class="w-full max-w-md px-4 mb-8">
+                <div class="app-card p-6">
+                    <!-- Auth mode title -->
+                    <h2 class="text-xl font-medium text-center mb-4" x-text="authMode === 'login' ? 'Log In' : 'Sign Up'"></h2>
+                    
+                    <!-- Login Form -->
+                    <form x-show="authMode === 'login'" @submit.prevent="login()">
+                        <div class="mb-4">
+                            <label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input 
+                                type="email" 
+                                id="login-email" 
+                                x-model="loginEmail" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                :disabled="authInProgress"
+                                required
+                            >
+                        </div>
+                        <div class="mb-4">
+                            <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input 
+                                type="password" 
+                                id="login-password" 
+                                x-model="loginPassword" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                :disabled="authInProgress"
+                                required
+                            >
+                        </div>
+                        <div 
+                            x-show="loginError" 
+                            class="mb-4 p-2 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm"
+                            x-text="loginError"
+                        ></div>
+                        <div class="flex justify-center">
+                            <button 
+                                type="submit"
+                                class="px-8 bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center"
+                                :disabled="authInProgress"
+                            >
+                                <template x-if="authInProgress">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </template>
+                                <span x-text="authInProgress ? 'Logging in...' : 'Login'"></span>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Signup Form -->
+                    <form x-show="authMode === 'signup'" @submit.prevent="signup()">
+                        <div class="mb-4">
+                            <label for="signup-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input 
+                                type="email" 
+                                id="signup-email" 
+                                x-model="loginEmail" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                :disabled="authInProgress"
+                                required
+                            >
+                        </div>
+                        <div class="mb-4">
+                            <label for="signup-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input 
+                                type="password" 
+                                id="signup-password" 
+                                x-model="loginPassword" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                :disabled="authInProgress"
+                                required
+                            >
+                        </div>
+                        <div class="mb-4">
+                            <label for="signup-confirm-password" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                            <input 
+                                type="password" 
+                                id="signup-confirm-password" 
+                                x-model="loginPasswordConfirm" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                :disabled="authInProgress"
+                                required
+                            >
+                        </div>
+                        <div 
+                            x-show="loginError" 
+                            class="mb-4 p-2 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm"
+                            x-text="loginError"
+                        ></div>
+                        <div class="flex justify-center">
+                            <button 
+                                type="submit"
+                                class="px-8 bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center"
+                                :disabled="authInProgress"
+                            >
+                                <template x-if="authInProgress">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </template>
+                                <span x-text="authInProgress ? 'Creating account...' : 'Sign Up'"></span>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4 text-center text-sm text-gray-500">
+                        <p x-show="authMode === 'login'">
+                            Don't have an account? 
+                            <button @click="authMode = 'signup'" class="text-secondary hover:underline">Sign up</button>
+                        </p>
+                        <p x-show="authMode === 'signup'">
+                            Already have an account? 
+                            <button @click="authMode = 'login'" class="text-secondary hover:underline">Log in</button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Page -->
+            <div x-show="isLoggedIn && currentState === 'settings'" class="w-full max-w-md px-4 mb-8">
+                <div class="app-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold">Settings</h2>
+                        <button @click="currentState = 'initial'" class="text-gray-500 hover:text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-lg font-medium mb-2">Account</h3>
+                        <div class="bg-gray-50 p-3 rounded-lg mb-3">
+                            <p class="text-sm text-gray-500">Email</p>
+                            <p x-text="user?.email || 'Not available'" class="font-medium"></p>
+                        </div>
+                        
+                        <button @click="logout()" class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors mb-4">
+                            Log Out
+                        </button>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-lg font-medium mb-2">Preferences</h3>
+                        <div x-show="userPreferences" class="space-y-3">
+                            <div x-show="userPreferences && userPreferences.skipped" class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-sm text-gray-700">You skipped setting preferences</p>
+                                <button @click="showOnboarding = true; onboardingStep = 1; currentState = 'initial'" 
+                                    class="text-secondary hover:underline text-sm">
+                                    Set preferences now
+                                </button>
+                            </div>
+                            
+                            <div x-show="userPreferences && !userPreferences.skipped" class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-sm text-gray-500 mb-2">Enhancement Preferences</p>
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    <template x-for="(value, key) in userPreferences && userPreferences.enhancementPreferences ? userPreferences.enhancementPreferences : {}" :key="key">
+                                        <div class="flex items-center">
+                                            <span x-show="value" class="mr-1 text-green-500">✓</span>
+                                            <span x-show="!value" class="mr-1 text-gray-300">✗</span>
+                                            <span x-text="key.replace(/([A-Z])/g, ' $1').replace(/^./, function(str){ return str.toUpperCase(); })"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <button @click="showOnboarding = true; onboardingStep = 1; currentState = 'initial'" 
+                                    class="text-secondary hover:underline text-sm mt-2">
+                                    Update preferences
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div x-show="!userPreferences" class="bg-gray-50 p-3 rounded-lg text-center">
+                            <p class="text-sm text-gray-500 mb-2">No preferences set</p>
+                            <button @click="showOnboarding = true; onboardingStep = 1; currentState = 'initial'" 
+                                class="text-secondary hover:underline text-sm">
+                                Set preferences now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Preferences Panel -->
+            <div x-show="isAuthenticated() && currentState === 'initial'" class="w-full max-w-md px-4 mb-8">
+                <div class="app-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Your Preferences</h2>
+                        <button 
+                            @click="fetchUserPreferences()" 
+                            class="text-secondary hover:text-primary transition-colors"
+                            title="Refresh preferences"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Loading state -->
+                    <div x-show="userPreferences === undefined" class="text-center py-4">
+                        <div class="loading-spinner mx-auto"></div>
+                        <p class="mt-2 text-gray-600">Loading preferences...</p>
+                    </div>
+                    
+                    <!-- No preferences state -->
+                    <div x-show="userPreferences === null" class="text-center py-4">
+                        <p class="text-gray-600">No preferences saved yet.</p>
+                        <button 
+                            @click="savePreferences({theme: 'light', notifications: true})" 
+                            class="mt-3 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 transition-colors"
+                        >
+                            Set Default Preferences
+                        </button>
+                    </div>
+                    
+                    <!-- Preferences form -->
+                    <form x-show="userPreferences !== null && userPreferences !== undefined" @submit.prevent="savePreferences(userPreferences)">
+                        <!-- Example preference: Theme -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Theme</label>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center">
+                                    <input 
+                                        type="radio" 
+                                        name="theme" 
+                                        value="light" 
+                                        x-model="userPreferences && userPreferences.theme !== undefined ? userPreferences.theme : 'light'" 
+                                        class="mr-2"
+                                    >
+                                    Light
+                                </label>
+                                <label class="flex items-center">
+                                    <input 
+                                        type="radio" 
+                                        name="theme" 
+                                        value="dark" 
+                                        x-model="userPreferences && userPreferences.theme !== undefined ? userPreferences.theme : 'light'" 
+                                        class="mr-2"
+                                    >
+                                    Dark
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Example preference: Notifications -->
+                        <div class="mb-4">
+                            <label class="flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    x-model="userPreferences && userPreferences.notifications !== undefined ? userPreferences.notifications : false" 
+                                    class="mr-2"
+                                >
+                                <span class="text-sm font-medium text-gray-700">Enable Notifications</span>
+                            </label>
+                        </div>
+                        
+                        <div class="flex justify-center">
+                            <button 
+                                type="submit"
+                                class="px-8 bg-secondary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center"
+                            >
+                                Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
             <!-- Initial State -->
-            <div x-show="currentState === 'initial'" class="w-full flex flex-col space-y-4 items-center">
+            <div x-show="currentState === 'initial' && isAuthenticated() && !showOnboarding" class="w-full flex flex-col space-y-4 items-center">
                 <button 
                     @click="captureMedia()" 
                     class="capture-btn w-full md:w-80 flex items-center justify-center rounded-full py-3 px-6 text-white"
@@ -351,7 +647,7 @@
         </div>
         
         <!-- Footer / Capture Button -->
-        <div x-show="currentState === 'initial'" class="footer-container flex justify-center py-4">
+        <div x-show="currentState === 'initial' && isAuthenticated() && !showOnboarding" class="footer-container flex justify-center py-4">
             <button 
                 @click="captureMedia()" 
                 class="float-capture-btn rounded-full p-4 text-white shadow-lg transform hover:scale-110 transition-transform duration-200"
@@ -553,6 +849,168 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Onboarding Flow -->
+        <div x-show="isAuthenticated() && showOnboarding && currentState === 'initial'" class="w-full max-w-lg px-4 mb-8">
+            <div class="app-card p-6">
+                <!-- Step 1: Welcome -->
+                <div x-show="onboardingStep === 1" class="text-center">
+                    <h2 class="text-2xl font-semibold mb-4">Welcome to ImaKOL!</h2>
+                    <p class="text-gray-600 mb-6">Let's personalize your experience by setting up your enhancement preferences.</p>
+                    <div class="flex space-x-3 justify-center mt-8">
+                        <button 
+                            @click="skipOnboarding()" 
+                            class="px-6 py-2 border border-gray-300 rounded-lg"
+                        >
+                            Skip
+                        </button>
+                        <button 
+                            @click="onboardingStep = 2" 
+                            class="px-6 py-2 bg-primary text-white rounded-lg"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Enhancement Preferences -->
+                <div x-show="onboardingStep === 2">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold">Enhancement Preferences</h2>
+                        <div class="text-sm text-gray-500">Step 1/2</div>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">Select the enhancements you prefer:</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.paleSkin" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Pale Skin</div>
+                                <div class="text-xs text-gray-500">Lighter, brighter skin tone</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.doubleEyelid" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Double Eyelid</div>
+                                <div class="text-xs text-gray-500">More defined eyelid crease</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.largerEyes" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Larger Eyes</div>
+                                <div class="text-xs text-gray-500">Enhanced eye size</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.slimmerFace" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Slimmer Face</div>
+                                <div class="text-xs text-gray-500">More defined facial contours</div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="flex space-x-3 justify-center">
+                        <button 
+                            @click="onboardingStep = 1" 
+                            class="px-6 py-2 border border-gray-300 rounded-lg"
+                        >
+                            Back
+                        </button>
+                        <button 
+                            @click="onboardingStep = 3" 
+                            class="px-6 py-2 bg-primary text-white rounded-lg"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 3: More Enhancement Preferences -->
+                <div x-show="onboardingStep === 3">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold">More Enhancements</h2>
+                        <div class="text-sm text-gray-500">Step 2/2</div>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">Select additional enhancements you prefer:</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.smootherSkin" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Smoother Skin</div>
+                                <div class="text-xs text-gray-500">Reduced blemishes and texture</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.sharperJawline" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Sharper Jawline</div>
+                                <div class="text-xs text-gray-500">More defined jaw shape</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.higherNose" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Higher Nose Bridge</div>
+                                <div class="text-xs text-gray-500">Enhanced nose profile</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" x-model="enhancementPreferences.brighterTeeth" class="mt-1 mr-3">
+                            <div>
+                                <div class="font-medium">Brighter Teeth</div>
+                                <div class="text-xs text-gray-500">Whiter, more even teeth</div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="flex space-x-3 justify-center">
+                        <button 
+                            @click="onboardingStep = 2" 
+                            class="px-6 py-2 border border-gray-300 rounded-lg"
+                        >
+                            Back
+                        </button>
+                        <button 
+                            @click="completeOnboarding()" 
+                            class="px-6 py-2 bg-primary text-white rounded-lg"
+                        >
+                            Save Preferences
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Completion -->
+                <div x-show="onboardingStep === 4" class="text-center">
+                    <div class="flex justify-center mb-6">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-semibold mb-4">All Set!</h2>
+                    <p class="text-gray-600 mb-6">Your preferences have been saved. You can always change them later from your account settings.</p>
+                    <button 
+                        @click="showOnboarding = false" 
+                        class="px-6 py-2 bg-primary text-white rounded-lg"
+                    >
+                        Start Using ImaKOL
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -603,8 +1061,64 @@
                 console.log('App initialized with environment variables');
             }
             
+            // Initialize default preferences if they don't exist
+            if (!this.userPreferences) {
+                this.userPreferences = {
+                    skipped: false,
+                    enhancementPreferences: {},
+                    theme: 'light',
+                    notifications: false
+                };
+            }
+            
             // Ensure we have the correct background color
             document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-light');
+            
+            // Check if user is already logged in
+            const token = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
+            
+            if (token && userData) {
+                try {
+                    // Set initial auth state
+                    this.isLoggedIn = true;
+                    this.user = JSON.parse(userData);
+                    
+                    // Validate token on startup
+                    const isValid = await this.validateToken();
+                    
+                    if (isValid) {
+                        console.log('User session restored successfully');
+                        
+                        // Set up periodic token validation
+                        this.setupTokenValidation();
+                        
+                        // Fetch user preferences
+                        await this.fetchUserPreferences();
+                        
+                        // Check if user needs onboarding
+                        // Note: 'isNew' flag would be set in the user object during signup
+                        const isNewUser = this.user.isNew === true;
+                        
+                        // If the user is new and has no preferences, show onboarding
+                        if (isNewUser && !this.userPreferences) {
+                            this.showOnboarding = true;
+                            this.onboardingStep = 1;
+                        }
+                    } else {
+                        // Token was invalid, user is now logged out via handleInvalidToken
+                        console.warn('Invalid session detected during initialization');
+                    }
+                } catch (error) {
+                    console.error('Error initializing user session:', error);
+                    
+                    // Reset auth state on error
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    this.isLoggedIn = false;
+                    this.user = null;
+                }
+            }
         }
         
         function appState() {
@@ -623,6 +1137,38 @@
                 capturedImage: null,
                 generatedCaption: '',
                 
+                // Authentication related state
+                isLoggedIn: false,
+                user: null,
+                loginEmail: '',
+                loginPassword: '',
+                loginPasswordConfirm: '',
+                loginError: '',
+                authInProgress: false,
+                tokenValidationTimeout: null,
+                authMode: 'login', // 'login' or 'signup'
+                showOnboarding: false,
+                onboardingStep: 1,
+                onboardingComplete: false,
+                
+                // User preferences and onboarding options
+                userPreferences: {
+                    skipped: false,
+                    enhancementPreferences: {},
+                    theme: 'light',
+                    notifications: false
+                },
+                enhancementPreferences: {
+                    paleSkin: false,
+                    doubleEyelid: false,
+                    largerEyes: false,
+                    slimmerFace: false,
+                    smootherSkin: false,
+                    sharperJawline: false,
+                    higherNose: false,
+                    brighterTeeth: false
+                },
+                
                 // Fullscreen view related state
                 isFullscreenViewOpen: false,
                 currentFullscreenIndex: null,
@@ -633,6 +1179,354 @@
                 enhancingIndex: null,
                 hasEnhanced: {}, // Track which images have been enhanced
                 originalFiles: {}, // Store original files for comparison/reverting
+                
+                // Authentication functions
+                async login() {
+                    try {
+                        this.loginError = '';
+                        this.authInProgress = true;
+                        
+                        if (!this.loginEmail || !this.loginPassword) {
+                            this.loginError = 'Please enter both email and password';
+                            this.authInProgress = false;
+                            return false;
+                        }
+                        
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                email: this.loginEmail,
+                                password: this.loginPassword
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            this.loginError = errorData.message || 'Login failed';
+                            this.authInProgress = false;
+                            return false;
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // Store auth token and user data
+                        localStorage.setItem('auth_token', data.token);
+                        localStorage.setItem('user_data', JSON.stringify(data.user));
+                        
+                        // Update app state
+                        this.isLoggedIn = true;
+                        this.user = data.user;
+                        
+                        // Clear login form
+                        this.loginEmail = '';
+                        this.loginPassword = '';
+                        
+                        // Fetch user preferences
+                        await this.fetchUserPreferences();
+                        
+                        // Set up token validation timeout
+                        this.setupTokenValidation();
+                        
+                        this.authInProgress = false;
+                        
+                        // Check if user needs onboarding (should be false for login, but check anyway)
+                        if (data.isNew || (this.user.isNew === true && !this.userPreferences)) {
+                            this.showOnboarding = true;
+                            this.onboardingStep = 1;
+                        }
+                        
+                        return true;
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        this.loginError = 'An error occurred during login. Please try again.';
+                        this.authInProgress = false;
+                        return false;
+                    }
+                },
+                
+                async logout() {
+                    try {
+                        this.authInProgress = true;
+                        
+                        // Clear token validation check if one is active
+                        if (this.tokenValidationTimeout) {
+                            clearTimeout(this.tokenValidationTimeout);
+                            this.tokenValidationTimeout = null;
+                        }
+                        
+                        await fetch('/api/auth/logout', {
+                            method: 'POST'
+                        });
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    } finally {
+                        // Clear local storage and state regardless of API response
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user_data');
+                        this.isLoggedIn = false;
+                        this.user = null;
+                        this.userPreferences = null;
+                        this.authInProgress = false;
+                    }
+                },
+                
+                // Check if user is authenticated
+                isAuthenticated() {
+                    return this.isLoggedIn && !!localStorage.getItem('auth_token');
+                },
+                
+                // Get the auth token
+                getAuthToken() {
+                    return localStorage.getItem('auth_token');
+                },
+                
+                // Set up periodic token validation
+                setupTokenValidation() {
+                    // Clear any existing validation timeout
+                    if (this.tokenValidationTimeout) {
+                        clearTimeout(this.tokenValidationTimeout);
+                    }
+                    
+                    // Check token validity every 10 minutes (600000 ms)
+                    this.tokenValidationTimeout = setTimeout(async () => {
+                        try {
+                            await this.validateToken();
+                        } finally {
+                            // Set up the next check if still logged in
+                            if (this.isLoggedIn) {
+                                this.setupTokenValidation();
+                            }
+                        }
+                    }, 600000);
+                },
+                
+                // Validate the current token
+                async validateToken() {
+                    try {
+                        const token = this.getAuthToken();
+                        if (!token) {
+                            this.handleInvalidToken('No token found');
+                            return false;
+                        }
+                        
+                        // Try to make a request to a protected endpoint to verify token
+                        const response = await fetch('/api/preferences', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        // Handle different error scenarios
+                        if (response.status === 401 || response.status === 403) {
+                            const errorData = await response.json();
+                            this.handleInvalidToken(errorData.message || 'Token validation failed');
+                            return false;
+                        }
+                        
+                        // If we get here, token is valid
+                        return true;
+                    } catch (error) {
+                        console.error('Token validation error:', error);
+                        // Only treat as invalid token if it's an auth error
+                        if (error.message.includes('Authentication') || 
+                            error.message.includes('Unauthorized') || 
+                            error.message.includes('token')) {
+                            this.handleInvalidToken(error.message);
+                            return false;
+                        }
+                        // Network errors should not log the user out
+                        return this.isLoggedIn;
+                    }
+                },
+                
+                // Handle invalid token situations
+                handleInvalidToken(message) {
+                    console.warn('Invalid token detected:', message);
+                    
+                    // Clear auth state
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    this.isLoggedIn = false;
+                    this.user = null;
+                    this.userPreferences = null;
+                    
+                    // Cancel token validation
+                    if (this.tokenValidationTimeout) {
+                        clearTimeout(this.tokenValidationTimeout);
+                        this.tokenValidationTimeout = null;
+                    }
+                    
+                    // Show error message to user
+                    // We could add a toast notification system here
+                    alert('Your session has expired. Please log in again.');
+                },
+                
+                // User preferences functions
+                async fetchUserPreferences() {
+                    try {
+                        const token = this.getAuthToken();
+                        if (!token) {
+                            throw new Error('Authentication required');
+                        }
+                        
+                        const response = await fetch('/api/preferences', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        // Handle specific error cases
+                        if (response.status === 401 || response.status === 403) {
+                            const errorData = await response.json();
+                            this.handleInvalidToken(errorData.message || 'Token validation failed');
+                            return null;
+                        }
+                        
+                        if (response.status === 404) {
+                            // No preferences found, keep the default structure
+                            console.log('No preferences found, using defaults');
+                            return this.userPreferences;
+                        }
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || 'Failed to fetch preferences');
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // Merge with defaults to ensure all properties exist
+                        this.userPreferences = {
+                            ...this.userPreferences,
+                            ...data.preferences,
+                            enhancementPreferences: {
+                                ...this.userPreferences.enhancementPreferences,
+                                ...(data.preferences?.enhancementPreferences || {})
+                            }
+                        };
+                        
+                        return this.userPreferences;
+                    } catch (error) {
+                        console.error('Error fetching preferences:', error);
+                        if (error.message.includes('Authentication') || 
+                            error.message.includes('token') || 
+                            error.message.includes('Unauthorized')) {
+                            this.handleInvalidToken(error.message);
+                        }
+                        return null;
+                    }
+                },
+                
+                async savePreferences(preferences, skipped = false) {
+                    try {
+                        const token = this.getAuthToken();
+                        if (!token) {
+                            throw new Error('Authentication required');
+                        }
+                        
+                        // Create the payload based on whether the user skipped or provided preferences
+                        const payload = {
+                            preferences: skipped ? {} : preferences,
+                            skipped: skipped
+                        };
+                        
+                        console.log('Saving preferences:', payload);
+                        
+                        const response = await fetch('/api/preferences', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        // Handle specific error cases
+                        if (response.status === 401 || response.status === 403) {
+                            const errorData = await response.json();
+                            this.handleInvalidToken(errorData.message || 'Token validation failed');
+                            throw new Error('Authentication failed');
+                        }
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || 'Failed to save preferences');
+                        }
+                        
+                        const data = await response.json();
+                        this.userPreferences = data.preferences;
+                        return data;
+                    } catch (error) {
+                        console.error('Error saving preferences:', error);
+                        if (error.message.includes('Authentication') || 
+                            error.message.includes('token') || 
+                            error.message.includes('Unauthorized')) {
+                            this.handleInvalidToken(error.message);
+                        }
+                        throw error;
+                    }
+                },
+                
+                async skipOnboarding() {
+                    try {
+                        // Explicitly send a skipped flag to the API
+                        await this.savePreferences({}, true);
+                        
+                        // Show completion step instead of immediately hiding onboarding
+                        this.onboardingStep = 4;
+                        
+                        // Update user.isNew flag if needed
+                        if (this.user && this.user.isNew) {
+                            this.user.isNew = false;
+                            localStorage.setItem('user_data', JSON.stringify(this.user));
+                        }
+                    } catch (error) {
+                        console.error('Error skipping onboarding:', error);
+                        alert('There was an error skipping onboarding. Please try again.');
+                    }
+                },
+                
+                async completeOnboarding() {
+                    try {
+                        // Count how many preferences were selected
+                        const selectedPrefs = Object.values(this.enhancementPreferences).filter(val => val === true).length;
+                        
+                        // Check if any preferences were selected
+                        if (selectedPrefs === 0) {
+                            // If no preferences selected, ask user if they meant to skip
+                            if (confirm('You haven\'t selected any preferences. Would you like to skip the preferences setup?')) {
+                                return this.skipOnboarding();
+                            } else {
+                                // User wants to select preferences
+                                return;
+                            }
+                        }
+                        
+                        // Save enhancement preferences
+                        await this.savePreferences({
+                            enhancements: this.enhancementPreferences,
+                            selectedCount: selectedPrefs,
+                            skippedSetup: false,
+                            completedAt: new Date().toISOString()
+                        });
+                        
+                        // Show completion step instead of immediately hiding onboarding
+                        this.onboardingStep = 4;
+                        this.onboardingComplete = true;
+                        
+                        // Update user.isNew flag
+                        if (this.user && this.user.isNew) {
+                            this.user.isNew = false;
+                            localStorage.setItem('user_data', JSON.stringify(this.user));
+                        }
+                    } catch (error) {
+                        console.error('Error completing onboarding:', error);
+                        alert('There was an error saving your preferences. Please try again.');
+                    }
+                },
                 
                 // Batch enhancement state
                 batchEnhancementActive: false,
@@ -2216,6 +3110,75 @@
                     
                     // Note: Currently enhancing items will still complete
                     // We could add abort controllers if needed for true cancellation
+                },
+                
+                async signup() {
+                    try {
+                        this.loginError = '';
+                        this.authInProgress = true;
+                        
+                        if (!this.loginEmail || !this.loginPassword || !this.loginPasswordConfirm) {
+                            this.loginError = 'Please fill out all fields';
+                            this.authInProgress = false;
+                            return false;
+                        }
+                        
+                        // Check if passwords match
+                        if (this.loginPassword !== this.loginPasswordConfirm) {
+                            this.loginError = 'Passwords do not match';
+                            this.authInProgress = false;
+                            return false;
+                        }
+                        
+                        const response = await fetch('/api/auth/signup', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                email: this.loginEmail,
+                                password: this.loginPassword,
+                                passwordConfirm: this.loginPasswordConfirm
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            this.loginError = errorData.message || 'Signup failed';
+                            this.authInProgress = false;
+                            return false;
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // Store auth token and user data
+                        localStorage.setItem('auth_token', data.token);
+                        localStorage.setItem('user_data', JSON.stringify(data.user));
+                        
+                        // Update app state
+                        this.isLoggedIn = true;
+                        this.user = data.user;
+                        
+                        // Clear login form
+                        this.loginEmail = '';
+                        this.loginPassword = '';
+                        this.loginPasswordConfirm = '';
+                        
+                        // Start onboarding for new users
+                        this.showOnboarding = true;
+                        this.onboardingStep = 1;
+                        
+                        // Set up token validation timeout
+                        this.setupTokenValidation();
+                        
+                        this.authInProgress = false;
+                        return true;
+                    } catch (error) {
+                        console.error('Signup error:', error);
+                        this.loginError = 'An error occurred during signup. Please try again.';
+                        this.authInProgress = false;
+                        return false;
+                    }
                 },
             }
         }

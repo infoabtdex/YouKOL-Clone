@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "A proxy server for handling image enhancement API requests and avoiding CORS errors",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "setup": "node install.js"
+    "setup": "node install.js",
+    "pb:init": "node init-pocketbase.js",
+    "pb:schema": "node create-pocketbase-schema.js"
   },
   "dependencies": {
     "axios": "^1.6.2",

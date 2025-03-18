@@ -24,7 +24,9 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// Increase JSON body size limit to handle large images (50MB)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Initialize PocketBase asynchronously
 async function initPocketBase() {
@@ -32,8 +34,42 @@ async function initPocketBase() {
     // Dynamic import for ES modules
     const PocketBase = (await import('pocketbase')).default;
     pb = new PocketBase('http://127.0.0.1:8090');
-    console.log('PocketBase initialized successfully');
-    return pb;
+    
+    // Check if we can connect to PocketBase using direct HTTP first
+    try {
+      // First try a direct HTTP request since we know this works
+      console.log('Testing direct HTTP connection to PocketBase...');
+      const response = await axios.get('http://127.0.0.1:8090/api/health', { timeout: 5000 });
+      console.log('Direct HTTP connection to PocketBase successful');
+      
+      // If direct HTTP works but pb.settings.getAll() hangs, we'll assume PocketBase is working
+      // and continue with initialization
+      
+      // Set a timeout for the PocketBase SDK call
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('PocketBase SDK operation timed out')), 5000)
+      );
+      
+      try {
+        // Try the SDK call with a timeout
+        const settingsPromise = pb.settings.getAll();
+        await Promise.race([settingsPromise, timeout]);
+        console.log('PocketBase SDK connected successfully');
+      } catch (sdkError) {
+        // If the SDK call times out but direct HTTP works, log a warning but continue
+        console.warn('Warning: PocketBase SDK timeout, but HTTP connection is working.');
+        console.warn('This might indicate an issue with the PocketBase SDK.');
+        console.warn('The application will continue, but some PocketBase features might not work correctly.');
+        // We'll still consider this a successful connection since HTTP works
+      }
+
+      console.log('PocketBase initialized successfully');
+      return pb;
+    } catch (connectionError) {
+      console.error('Error connecting to PocketBase:', connectionError);
+      console.error('Please make sure PocketBase is running on http://127.0.0.1:8090');
+      throw new Error('Failed to connect to PocketBase server');
+    }
   } catch (error) {
     console.error('Error initializing PocketBase:', error);
     throw error;
@@ -132,65 +168,107 @@ app.get('/', (req, res) => {
 
 // Authentication middleware
 const authMiddleware = async (req, res, next) => {
-  try {
-    // Ensure PocketBase is initialized
-    if (!pb) {
-      await initPocketBase();
-    }
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Authentication required', errorCode: 'AUTH_REQUIRED' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'Invalid token format', errorCode: 'INVALID_TOKEN_FORMAT' });
-    }
-
-    // Clear any previous authentication state
-    pb.authStore.clear();
-    
+  // Ensure PocketBase is initialized
+  if (!pb) {
     try {
-      // Store the token in the client instance
-      pb.authStore.save(token);
-      
-      // If the token is invalid or expired, this will throw an error
-      if (!pb.authStore.isValid) {
-        throw new Error('Invalid token');
-      }
-      
-      // Validate user ID exists in the token model
-      if (!pb.authStore.model || !pb.authStore.model.id) {
-        throw new Error('Invalid user identity in token');
-      }
-      
-      // Set the user on the request object
-      req.user = pb.authStore.model;
-      next();
-    } catch (error) {
-      pb.authStore.clear();
-      console.error('Token validation error:', error);
-      
-      // Determine specific error type for better client handling
-      let errorCode = 'INVALID_TOKEN';
-      let statusCode = 401;
-      let message = 'Invalid or expired token';
-      
-      if (error.status === 403) {
-        errorCode = 'FORBIDDEN';
-        statusCode = 403;
-        message = 'You do not have permission to access this resource';
-      }
-      
-      return res.status(statusCode).json({ 
-        message: message, 
-        errorCode: errorCode
-      });
+      await initPocketBase();
+    } catch (initError) {
+      console.error('Failed to initialize PocketBase during auth:', initError);
+      return res.status(500).json({ message: 'Server initialization error', errorCode: 'SERVER_ERROR' });
     }
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Authentication required', errorCode: 'AUTH_REQUIRED' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Invalid token format', errorCode: 'INVALID_TOKEN_FORMAT' });
+  }
+
+  // Clear any previous authentication state
+  pb.authStore.clear();
+  
+  try {
+    // Store the token in the client instance
+    pb.authStore.save(token);
+    
+    // If the token is invalid or expired, this will throw an error
+    if (!pb.authStore.isValid) {
+      throw new Error('Invalid token');
+    }
+    
+    // Validate user ID exists in the token model
+    if (!pb.authStore.model || !pb.authStore.model.id) {
+      // Set a timeout for the refresh operation
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Token refresh operation timed out')), 5000)
+      );
+      
+      try {
+        // Try to refresh the auth state with a timeout
+        const refreshPromise = pb.collection('users').authRefresh();
+        await Promise.race([refreshPromise, timeout]);
+        
+        if (!pb.authStore.model || !pb.authStore.model.id) {
+          throw new Error('Invalid user identity in token even after refresh');
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        
+        // If refresh times out, try a direct check via HTTP for the token
+        if (refreshError.message === 'Token refresh operation timed out') {
+          try {
+            // Try to manually validate the token with a direct HTTP request
+            const response = await axios.post(
+              'http://127.0.0.1:8090/api/collections/users/auth-refresh',
+              {}, // No body needed
+              {
+                headers: { 'Authorization': `Bearer ${token}` },
+                timeout: 5000
+              }
+            );
+            
+            // If we get here, the token is valid
+            console.log('Token validated via direct HTTP request');
+            
+            // Manually set user data from response if available
+            if (response.data && response.data.record) {
+              req.user = response.data.record;
+              return next();
+            }
+          } catch (httpError) {
+            // If HTTP validation also fails, the token is invalid
+            console.error('HTTP token validation failed:', httpError.message);
+            throw new Error('Invalid user identity in token');
+          }
+        } else {
+          throw new Error('Invalid user identity in token');
+        }
+      }
+    }
+    
+    // Set the user on the request object
+    req.user = pb.authStore.model;
+    next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(500).json({ message: 'Internal server error', errorCode: 'SERVER_ERROR' });
+    pb.authStore.clear();
+    console.error('Token validation error:', error);
+    
+    // Determine specific error type for better client handling
+    let errorCode = 'INVALID_TOKEN';
+    let statusCode = 401;
+    let message = 'Invalid or expired token';
+    
+    if (error.status === 403) {
+      errorCode = 'FORBIDDEN';
+      statusCode = 403;
+      message = 'You do not have permission to access this resource';
+    }
+    
+    return res.status(statusCode).json({ message, errorCode });
   }
 };
 
@@ -201,7 +279,12 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     // Ensure PocketBase is initialized
     if (!pb) {
-      await initPocketBase();
+      try {
+        await initPocketBase();
+      } catch (initError) {
+        console.error('Failed to initialize PocketBase during login:', initError);
+        return res.status(500).json({ message: 'Server initialization error' });
+      }
     }
     
     const { email, password } = req.body;
@@ -210,12 +293,32 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const authData = await pb.collection('users').authWithPassword(email, password);
-    
-    return res.status(200).json({
-      user: authData.record,
-      token: pb.authStore.token
-    });
+    try {
+      const authData = await pb.collection('users').authWithPassword(email, password);
+      
+      // Validate the auth data before returning
+      if (!pb.authStore.isValid || !pb.authStore.token || !authData.record) {
+        throw new Error('Authentication succeeded but token is invalid');
+      }
+      
+      return res.status(200).json({
+        user: authData.record,
+        token: pb.authStore.token
+      });
+    } catch (authError) {
+      console.error('Authentication error:', authError);
+      
+      // Handle specific auth errors
+      if (authError.status === 400) {
+        return res.status(400).json({ message: 'Invalid email or password' });
+      } else if (authError.status === 404) {
+        // Collection or user not found
+        return res.status(404).json({ 
+          message: 'User not found. Make sure you have created a PocketBase account first.' 
+        });
+      }
+      throw authError; // Let the outer catch handle other errors
+    }
   } catch (error) {
     console.error('Login error:', error);
     if (error.status === 400) {
@@ -279,7 +382,12 @@ app.post('/api/auth/signup', async (req, res) => {
   try {
     // Ensure PocketBase is initialized
     if (!pb) {
-      await initPocketBase();
+      try {
+        await initPocketBase();
+      } catch (initError) {
+        console.error('Failed to initialize PocketBase during signup:', initError);
+        return res.status(500).json({ message: 'Server initialization error' });
+      }
     }
     
     const { email, password, passwordConfirm } = req.body;
@@ -296,36 +404,70 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
     
-    // Create the user with PocketBase
-    const data = {
-      email: email,
-      password: password,
-      passwordConfirm: passwordConfirm,
-      isNew: true // Flag to track new users for onboarding
-    };
-    
-    const record = await pb.collection('users').create(data);
-    
-    // Authenticate the user automatically after signup
-    const authData = await pb.collection('users').authWithPassword(email, password);
-    
-    return res.status(201).json({
-      user: authData.record,
-      token: pb.authStore.token,
-      isNew: true
-    });
+    // Try to create the user with PocketBase
+    try {
+      const data = {
+        email: email,
+        password: password,
+        passwordConfirm: passwordConfirm,
+        isNew: true // Flag to track new users for onboarding
+      };
+      
+      // Check if the users collection exists first
+      try {
+        await pb.collection('users').getList(1, 1);
+      } catch (collectionError) {
+        if (collectionError.status === 404) {
+          return res.status(500).json({
+            message: 'The users collection does not exist in PocketBase. Please set up PocketBase properly first.'
+          });
+        }
+      }
+      
+      // Create the user
+      const record = await pb.collection('users').create(data);
+      
+      // Authenticate the user automatically after signup
+      const authData = await pb.collection('users').authWithPassword(email, password);
+      
+      // Validate the auth data before returning
+      if (!pb.authStore.isValid || !pb.authStore.token || !authData.record) {
+        throw new Error('User created but authentication failed');
+      }
+      
+      return res.status(201).json({
+        user: authData.record,
+        token: pb.authStore.token,
+        isNew: true
+      });
+    } catch (createError) {
+      console.error('User creation error:', createError);
+      
+      if (createError.status === 400) {
+        // Extract validation errors if available
+        const errors = createError.data?.data;
+        let errorMessage = 'Invalid signup data';
+        
+        if (errors) {
+          if (errors.email) {
+            errorMessage = `Email error: ${errors.email.message}`;
+          } else if (errors.password) {
+            errorMessage = `Password error: ${errors.password.message}`;
+          }
+        }
+        
+        return res.status(400).json({ message: errorMessage });
+      } else if (createError.status === 404) {
+        return res.status(404).json({ 
+          message: 'The users collection does not exist in PocketBase. Please set up PocketBase properly first.'
+        });
+      }
+      
+      throw createError; // Let the outer catch handle other errors
+    }
   } catch (error) {
     console.error('Signup error:', error);
-    
-    // Handle duplicate email
-    if (error.status === 400 && error.response?.data?.email?.code === 'validation_invalid_email_unique') {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
-    
-    return res.status(500).json({ 
-      message: 'Error creating user', 
-      error: error.response?.data || error.message 
-    });
+    return res.status(500).json({ message: 'Internal server error during signup' });
   }
 });
 
@@ -343,25 +485,59 @@ app.post('/api/preferences', authMiddleware, async (req, res) => {
       ? { skipped: true, skippedAt: new Date().toISOString() } 
       : preferences;
 
-    // Check if the user already has preferences stored
-    const existingPrefs = await pb.collection('preferences').getList(1, 1, {
-      filter: `userId = "${userId}"`
-    });
-
-    // If preferences already exist, update them
-    if (existingPrefs.items.length > 0) {
-      const updatedPref = await pb.collection('preferences').update(existingPrefs.items[0].id, {
-        preferences: preferencesData
+    try {
+      // Set a timeout for the PocketBase operation
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('PocketBase operation timed out')), 5000)
+      );
+      
+      // Check if the user already has preferences stored
+      const getListPromise = pb.collection('preferences').getList(1, 1, {
+        filter: `userId = "${userId}"`
       });
-      return res.status(200).json(updatedPref);
-    } 
-    // Otherwise create new preferences
-    else {
-      const newPref = await pb.collection('preferences').create({
-        userId: userId,
-        preferences: preferencesData
+      
+      // Use Promise.race to implement a timeout
+      const existingPrefs = await Promise.race([getListPromise, timeout]);
+      
+      // If preferences already exist, update them
+      if (existingPrefs.items.length > 0) {
+        const updatePromise = pb.collection('preferences').update(existingPrefs.items[0].id, {
+          preferences: preferencesData
+        });
+        
+        const updatedPref = await Promise.race([updatePromise, timeout]);
+        return res.status(200).json(updatedPref);
+      } 
+      // Otherwise create new preferences
+      else {
+        const createPromise = pb.collection('preferences').create({
+          userId: userId,
+          preferences: preferencesData
+        });
+        
+        const newPref = await Promise.race([createPromise, timeout]);
+        return res.status(201).json(newPref);
+      }
+    } catch (pbError) {
+      console.warn('PocketBase operation failed, storing preferences in memory:', pbError.message);
+      
+      // As a fallback, store in app memory if PocketBase is unavailable
+      // Note: this is temporary and will be lost on server restart
+      if (!global.tempPreferences) {
+        global.tempPreferences = {};
+      }
+      
+      // Store in a global variable as fallback
+      global.tempPreferences[userId] = {
+        userId,
+        preferences: preferencesData,
+        created: new Date().toISOString()
+      };
+      
+      return res.status(200).json({
+        message: 'Preferences stored temporarily (PocketBase unavailable)',
+        preferences: global.tempPreferences[userId]
       });
-      return res.status(201).json(newPref);
     }
   } catch (error) {
     console.error('Save preferences error:', error);
@@ -374,15 +550,42 @@ app.get('/api/preferences', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     
-    const userPrefs = await pb.collection('preferences').getList(1, 1, {
-      filter: `userId = "${userId}"`
-    });
+    try {
+      // Set a timeout for the PocketBase operation
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('PocketBase operation timed out')), 5000)
+      );
+      
+      // Try to get preferences from PocketBase
+      const getListPromise = pb.collection('preferences').getList(1, 1, {
+        filter: `userId = "${userId}"`
+      });
+      
+      // Use Promise.race to implement a timeout
+      const userPrefs = await Promise.race([getListPromise, timeout]);
 
-    if (userPrefs.items.length === 0) {
+      if (userPrefs.items.length === 0) {
+        // Check if we have temp preferences stored
+        if (global.tempPreferences && global.tempPreferences[userId]) {
+          return res.status(200).json(global.tempPreferences[userId]);
+        }
+        
+        // No preferences found anywhere
+        return res.status(404).json({ message: 'No preferences found for this user' });
+      }
+
+      return res.status(200).json(userPrefs.items[0]);
+    } catch (pbError) {
+      console.warn('PocketBase operation failed, retrieving from memory:', pbError.message);
+      
+      // Check if we have temp preferences stored
+      if (global.tempPreferences && global.tempPreferences[userId]) {
+        return res.status(200).json(global.tempPreferences[userId]);
+      }
+      
+      // No preferences found
       return res.status(404).json({ message: 'No preferences found for this user' });
     }
-
-    return res.status(200).json(userPrefs.items[0]);
   } catch (error) {
     console.error('Get preferences error:', error);
     return res.status(500).json({ message: 'Failed to retrieve preferences', error: error.message });

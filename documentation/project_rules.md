@@ -1,6 +1,6 @@
-# YouKOL Clone - Project Rules
+# ImaKOL - Project Rules
 
-This document outlines specific guidelines and rules for the YouKOL Clone project, supplementing the global user rules. These project-specific instructions ensure consistency, quality, and efficiency across the codebase.
+This document outlines specific guidelines and rules for the ImaKOL project, supplementing the global user rules. These project-specific instructions ensure consistency, quality, and efficiency across the codebase.
 
 ## File Structure Guidelines
 
@@ -18,11 +18,11 @@ This document outlines specific guidelines and rules for the YouKOL Clone projec
 ├── public/            # Static assets served directly
 ├── uploads/           # Temporary storage for uploaded files
 ├── logs/              # Application logs
+├── pocketbase/        # PocketBase executable and database
 ├── temp/              # Temporary working files
 │   ├── active/        # Currently active work files
 │   └── dormant/       # Temporarily unused files
 ├── node_modules/      # Dependencies (not tracked in git)
-├── pocketbase_windows/# PocketBase executable and data
 └── workflows/         # CI/CD workflow configurations
 ```
 
@@ -68,6 +68,32 @@ This document outlines specific guidelines and rules for the YouKOL Clone projec
    - Implement proper CORS configuration
    - Follow principle of least privilege
 
+### Pocketbase Integration
+
+1. **Authentication Guidelines**
+   - Use the Pocketbase SDK for authentication operations
+   - Implement token storage in localStorage with appropriate expiration
+   - Create proper authentication state management
+   - Support remember-me functionality for persistent sessions
+
+2. **Database Schema Practices**
+   - Document all collection schemas in code and documentation
+   - Use consistent naming conventions for fields
+   - Implement proper relations between collections
+   - Include validation rules for all fields
+
+3. **Data Access Patterns**
+   - Use the appropriate Pocketbase methods for CRUD operations
+   - Implement proper error handling for database operations
+   - Cache frequently accessed data when appropriate
+   - Use transactions for related operations
+
+4. **User Data Security**
+   - Implement proper authorization rules in Pocketbase Admin UI
+   - Validate permissions on both client and server side
+   - Follow the principle of least privilege for collection access
+   - Apply proper sanitization for user-generated content
+
 ## Development Workflow
 
 ### Feature Development Process
@@ -109,6 +135,58 @@ This document outlines specific guidelines and rules for the YouKOL Clone projec
    - Handle response parsing consistently
    - Document API version dependencies
 
+3. **Pocketbase API**
+   - Use the official SDK for all operations
+   - Implement proper authentication flow
+   - Handle realtime subscriptions efficiently
+   - Document custom endpoints and hooks
+
+## User Authentication Workflow
+
+1. **Registration Process**
+   - Collect minimal required information
+   - Implement proper validation for all fields
+   - Handle email verification if enabled
+   - Create user profile upon successful registration
+
+2. **Login Process**
+   - Support both email and username login
+   - Implement proper error messages for failed attempts
+   - Include "Remember Me" functionality
+   - Handle password reset flow
+
+3. **Session Management**
+   - Securely store authentication tokens
+   - Implement token refresh mechanism
+   - Handle session expiration gracefully
+   - Support multiple device logins
+
+4. **User Profile Management**
+   - Allow users to update profile information
+   - Support avatar uploads and management
+   - Implement preference saving for enhancement settings
+   - Provide account deletion functionality
+
+## Enhancement Preferences Management
+
+1. **Preset Structure**
+   - Create named presets for enhancement settings
+   - Support default preset selection
+   - Allow preset duplication and editing
+   - Implement preset sharing (optional feature)
+
+2. **Enhancement Settings**
+   - Standardize setting format across enhancement types
+   - Support intensity levels for each enhancement
+   - Implement enable/disable toggle for each setting
+   - Provide visual previews when possible
+
+3. **User Experience**
+   - Autosave changes to preferences
+   - Provide one-click application of presets
+   - Support A/B comparison between presets
+   - Implement preset organization features
+
 ## Testing Strategy
 
 1. **Manual Testing Checklist**
@@ -123,6 +201,12 @@ This document outlines specific guidelines and rules for the YouKOL Clone projec
    - Test timeout and error scenarios
    - Verify file upload edge cases
 
+3. **Authentication Testing**
+   - Verify registration flow including validations
+   - Test login with correct and incorrect credentials
+   - Validate password reset functionality
+   - Test session persistence and expiration
+
 ## Deployment Guidelines
 
 1. **Environment Configuration**
@@ -131,7 +215,13 @@ This document outlines specific guidelines and rules for the YouKOL Clone projec
    - Validate environment before startup
    - Document any environment-specific behavior
 
-2. **Production Preparation**
+2. **Pocketbase Deployment**
+   - Document Pocketbase version requirements
+   - Include database backup and restore procedures
+   - Configure proper security settings
+   - Set up automated backups
+
+3. **Production Preparation**
    - Remove development dependencies
    - Optimize assets for production
    - Configure appropriate CORS settings
@@ -150,6 +240,12 @@ This document outlines specific guidelines and rules for the YouKOL Clone projec
    - Document known limitations
    - Provide troubleshooting guidance
    - Include screenshots for UI changes
+
+3. **Schema Documentation**
+   - Document all Pocketbase collections
+   - Include field types and validations
+   - Document relations between collections
+   - Update when schema changes
 
 ## Changelog Management
 

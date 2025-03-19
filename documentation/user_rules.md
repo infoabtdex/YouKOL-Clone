@@ -43,6 +43,7 @@ This structure should be initialized and kept in all projects
 5. **Keep Documentation Current**  
    - Update documentation whenever significant changes or new features are implemented.  
    - Ensure documentation remains accurate and comprehensive, referring to project-specific files for details.
+   - Whenever documentation is updated, check if there any outdated documentation and remove/update accordingly.
 
 6. **Focus on Security and Robustness**  
    - Implement proper error handling and follow security best practices in all code.  

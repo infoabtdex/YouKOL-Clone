@@ -1,40 +1,65 @@
-# Technology Stack
+# ImaKOL Technical Stack
+
+This document outlines the technologies used in the ImaKOL application.
 
 ## Frontend
-- **HTML5/CSS3** - Core web technologies for structure and styling
-- **JavaScript** - Vanilla JavaScript for frontend functionality
-- **Alpine.js** - Lightweight JavaScript framework for declarative UI
-- **Tailwind CSS** - Utility-first CSS framework for styling
-- **DaisyUI** - Component library built on top of Tailwind CSS
+
+- **HTML/CSS/JavaScript**: Core web technologies
+- **Alpine.js**: Lightweight JavaScript framework for interactivity
+- **Tailwind CSS**: Utility-first CSS framework for styling
 
 ## Backend
-- **Node.js** - JavaScript runtime environment
-- **Express.js** - Web application framework for Node.js
-- **Multer** - Middleware for handling multipart/form-data (file uploads)
-- **Axios** - Promise-based HTTP client for making API requests
-- **CORS** - Package for enabling Cross-Origin Resource Sharing
-- **Dotenv** - Module for loading environment variables from .env file
 
-## Database/Authentication
-- **PocketBase** - Open source backend as a service (self-hostable)
-- **JWT** - JSON Web Tokens for authentication
+- **Node.js**: JavaScript runtime for server-side code
+- **Express.js**: Web framework for creating the API server
+- **PocketBase**: Database and authentication backend
+- **Express-session**: Session management for authentication
 
-## APIs
-- **Deep Image API** - For image enhancement capabilities
-- **Grok API** - For AI-powered vision capabilities
+## Authentication
 
-## DevOps/Infrastructure
-- **PM2** - Process manager for Node.js applications in production
-- **Winston** - Logging library for Node.js
-- **Nodemon** - Utility for monitoring changes during development
+- **Server-side session management**: Using Express-session with secure cookies
+- **PocketBase authentication**: Leveraged through Node.js server as a proxy
+- **HTTP-only cookies**: For secure token storage
+
+## Data Storage
+
+- **PocketBase (SQLite)**: Main database for users and preferences
+- **Server-side file storage**: For temporary processing of images
+
+## APIs and Services
+
+- **Deep Image API**: For AI-powered image enhancement
+- **Node.js REST API**: Custom API layer between client and PocketBase
+
+## DevOps
+
+- **npm**: Package management
+- **Nodemon**: Development server with hot reloading
+- **Concurrently**: Run multiple processes simultaneously (Node.js + PocketBase)
+
+## Security
+
+- **HTTP-only cookies**: Prevent client-side access to authentication tokens
+- **CORS**: Configure Cross-Origin Resource Sharing for API security
+- **Helmet**: Express middleware for securing HTTP headers
+- **Server-side validation**: Validate all inputs on the server
 
 ## Deployment Options
-- **Docker** - Containerization platform
-- **Nginx** - Web server (as a reverse proxy)
-- **Cloud Providers** - Support for various cloud hosting providers
 
-## Tools & Utilities
-- **Form-Data** - Library for creating form data
-- **Canvas** - Node.js library for working with images
+- **VPS/Cloud**: Deploy Node.js server and PocketBase on a VPS or cloud provider
+- **Docker**: Containerize the application for easier deployment
+- **Static Hosting + Serverless**: Option for static frontend with serverless backend
 
-This stack provides a lightweight yet powerful foundation for the YouKOL Clone application, focusing on performance, maintainability, and developer experience.
+## Development Tools
+
+- **VS Code**: Recommended code editor
+- **Chrome DevTools**: For debugging and testing
+- **Postman/Insomnia**: For API testing
+
+## Build and Bundling
+
+- **Webpack**: Bundle JavaScript for production
+- **PostCSS**: Process Tailwind CSS
+- **Babel**: JavaScript compatibility for older browsers
+
+This stack provides a lightweight yet powerful foundation for the ImaKOL application, focusing on performance, maintainability, and developer experience.

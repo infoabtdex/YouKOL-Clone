@@ -68,3 +68,63 @@ YouKOL Clone is a standalone web application that provides image enhancement cap
 - Create premium subscription model
 - Develop plugin system for third-party enhancements
 - Add AI-powered automatic enhancement suggestions
+
+# ImaKOL Documentation Index
+
+This document serves as the entry point for all documentation regarding the ImaKOL application.
+
+## Documentation Structure
+
+### Project Planning
+- [Project Requirements Document (PRD)](./prd.md)
+- [Technical Stack](./tech_stack.md)
+- [Application Flow](./app_flow.md)
+
+### Architecture
+- [Frontend Structure](./frontend_structure.md)
+- [Backend Structure](./backend_structure.md)
+- [Server-Side Pocketbase Implementation](./pocketbase_server_implementation.md)
+
+### Implementation Guides
+- [Server-Side Implementation Structure](./server-side-implementation.md)
+- [Server-Side Authentication Flow](./server-side-auth-flow.md)
+- [Package.json Example](./package-json-example.md)
+
+### Project Management
+- [User Rules](./user_rules.md)
+- [Project Rules](./project_rules.md)
+- [Changelog](./changelog.md)
+
+## Key Features
+
+1. **Image Enhancement**: Automatic and manual enhancement of images using AI technology
+2. **Server-Side Authentication**: Secure user authentication using Express.js and Pocketbase
+3. **Enhancement Presets**: Save and manage enhancement settings for future use
+4. **Social Sharing**: Share enhanced images on social media platforms
+
+## Implementation Approach
+
+ImaKOL uses a server-side approach for authentication and data management:
+
+```
+Client (Browser) <---> Node.js Server <---> Pocketbase
+```
+
+This architecture enhances security by:
+- Keeping authentication tokens and sensitive operations server-side
+- Using session-based authentication with secure cookies
+- Preventing direct client access to the database
+- Centralizing business logic on the server
+
+## Getting Started
+
+To set up the development environment:
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables (see `.env.example`)
+4. Start the development server: `npm run start:all`
+
+## Contributing
+
+Please refer to [Project Rules](./project_rules.md) for contribution guidelines and coding standards.

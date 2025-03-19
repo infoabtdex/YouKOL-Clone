@@ -4,6 +4,21 @@ These rules govern Cursor's behavior across **all projects**, promoting scalable
 
 ---
 
+### Directory Structure
+
+This structure should be initialized and kept in all projects
+
+```
+/
+├── documentation/     # Project documentation
+├── temp/              # Temporary working files
+│   ├── active/        # Currently active work files
+│   └── dormant/       # Temporarily unused files
+├── project specific files
+```
+
+---
+
 ## General Principles
 
 1. **Prioritize Clarity and Organization**  
@@ -17,13 +32,19 @@ These rules govern Cursor's behavior across **all projects**, promoting scalable
 3. **Leverage Intermediate Files for Large Tasks**  
    - Use temporary intermediate files to manage extensive contexts or complex tasks.  
    - Name files sequentially (e.g., `intermediate_1.md`, `intermediate_2.md`) for clarity.  
-   - Consolidate results into the final output and delete intermediate files once the task is complete.
+   - Consolidate results into the final output and process into active/dormant file management once the task is complete.
 
-4. **Keep Documentation Current**  
+4. **Active and Dormant File Management**
+   - Active Files: Store works-in-progress in `/temp/active/`.
+   - Dormant Files: Move temporarily unused files to `/temp/dormant/`.
+   - File States: Document file status in the index.md file.
+   - Once dormant files are completely obsolete, they should be deleted.
+
+5. **Keep Documentation Current**  
    - Update documentation whenever significant changes or new features are implemented.  
    - Ensure documentation remains accurate and comprehensive, referring to project-specific files for details.
 
-5. **Focus on Security and Robustness**  
+6. **Focus on Security and Robustness**  
    - Implement proper error handling and follow security best practices in all code.  
    - Write maintainable, readable code to support long-term project success.
 

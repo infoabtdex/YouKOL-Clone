@@ -1,199 +1,142 @@
 # YouKOL Clone
 
-A standalone web application that provides image enhancement capabilities through a proxy server, built with Express.js and vanilla JavaScript.
+A clone of YouKOL with image enhancement capabilities and user authentication using server-side session management.
 
 ## Features
 
-- Image enhancement and processing
-- CORS-enabled API proxy server
-- File upload handling
-- Environment-based configuration
-- Simple and lightweight deployment
+- 🔐 Secure server-side authentication
+- 🖼️ Image enhancement via API
+- 🎨 User enhancement presets
+- 🚀 Fast response times
+- 📱 Mobile-friendly UI
+
+## Project Structure
+
+```
+/
+├── documentation/     # Project documentation
+├── public/            # Static files for the frontend
+├── server/            # Server-side code
+│   ├── config/        # Configuration files
+│   ├── middleware/    # Express middleware
+│   ├── routes/        # API routes
+│   ├── services/      # Business logic services
+│   └── utils/         # Utility functions
+├── pocketbase/        # PocketBase database (installed via setup)
+└── uploads/           # Temporary folder for image uploads
+```
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- npm (Node Package Manager)
-- Git
+- Node.js (v16 or higher)
+- npm (v7 or higher)
 
-## Installation
+## Setup
 
 1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/YouKOL-Clone.git
-cd YouKOL-Clone
-```
+   ```bash
+   git clone https://github.com/yourusername/youkol-clone.git
+   cd youkol-clone
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-3. Set up your environment configuration:
-```bash
-# Copy the example configuration file
-cp .env.example .env
+3. Set up environment variables by creating a `.env` file in the project root:
+   ```
+   PORT=3000
+   NODE_ENV=development
+   SESSION_SECRET=your-session-secret
+   API_KEY=your-image-enhancement-api-key
+   API_URL=your-image-enhancement-api-url
+   POCKETBASE_URL=http://127.0.0.1:8090
+   ```
 
-# Edit the .env file with your API keys and settings
-nano .env  # or use your preferred text editor
-```
+4. Install PocketBase:
+   ```bash
+   npm run setup
+   ```
 
-The `.env` file requires at minimum:
-```
-DEEP_IMAGE_API_KEY=your_api_key_here
-GROK_API_KEY=your_grok_api_key_here
-```
+## Running the Application
 
-See `.env.example` for a complete list of configuration options with documentation.
+### Development Mode
 
-## Logging
-
-The application uses Winston logger for comprehensive logging:
-
-- All logs are stored in the `logs` directory
-- Log files are automatically rotated (5MB max size, 5 files max)
-- Different log levels: error, warn, info, debug
-- Configure the log level in the `.env` file:
-  ```
-  LOG_LEVEL=info  # Options: error, warn, info, debug
-  ```
-
-Log files created:
-- `combined.log`: Contains all log messages
-- `error.log`: Contains only error messages
-- `exceptions.log`: Records uncaught exceptions
-- `rejections.log`: Records unhandled promise rejections
-
-## Development
-
-To run the application in development mode with hot-reloading:S
+Run both the Node.js server and PocketBase together:
 
 ```bash
 npm run dev
 ```
 
-## Production Deployment
+This will start:
+- Node.js server on http://localhost:3000
+- PocketBase on http://localhost:8090
 
-### Option 1: Direct Server Deployment
+### Running Components Separately
 
-1. **Prepare your server**
-   - Set up a Linux server (Ubuntu/Debian recommended)
-   - Install Node.js and npm
-   - Install PM2 (process manager) globally:
-     ```bash
-     npm install -g pm2
-     ```
+To run the Node.js server only:
 
-2. **Deploy the application**
-   ```bash
-   # Clone the repository
-   git clone https://github.com/yourusername/YouKOL-Clone.git
-   cd YouKOL-Clone
-
-   # Install dependencies
-   npm install --production
-
-   # Set up environment variables
-   cp .env.example .env
-   # Edit .env with your production values
-
-   # Start the application with PM2
-   pm2 start server.js --name "youkol-clone"
-   
-   # Ensure PM2 starts on system reboot
-   pm2 startup
-   pm2 save
-   ```
-
-3. **Set up Nginx as a reverse proxy**
-   ```nginx
-   server {
-       listen 80;
-       server_name yourdomain.com;
-
-       location / {
-           proxy_pass http://localhost:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
-   }
-   ```
-
-### Option 2: Docker Deployment
-
-1. **Create a Dockerfile in the project root**:
-```dockerfile
-FROM node:16-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install --production
-
-COPY . .
-
-EXPOSE 3000
-
-CMD ["node", "server.js"]
-```
-
-2. **Build and run the Docker container**:
 ```bash
-# Build the image
-docker build -t youkol-clone .
-
-# Run the container
-docker run -d \
-  -p 3000:3000 \
-  --name youkol-clone \
-  --env-file .env \
-  youkol-clone
+npm run server
 ```
 
-### Option 3: Cloud VM Deployment (e.g., DigitalOcean, AWS EC2, Google Cloud)
+To run PocketBase only:
 
-1. Create a VM instance
-2. SSH into your instance
-3. Follow the steps from Option 1 (Direct Server Deployment)
-4. Configure your cloud provider's firewall to allow traffic on port 80/443
-
-## Security Considerations
-
-1. Always use HTTPS in production
-2. Set up proper CORS configuration in `.env`
-3. Use secure API keys and environment variables
-4. Implement rate limiting for production use
-5. Regular security updates and monitoring
-
-## Monitoring and Maintenance
-
-1. **Monitor the application**:
 ```bash
-pm2 monit
-pm2 logs
+npm run pocketbase
 ```
 
-2. **Update the application**:
-```bash
-git pull
-npm install
-pm2 restart youkol-clone
-```
+## PocketBase Admin
 
-## Troubleshooting
+Access the PocketBase admin interface at http://127.0.0.1:8090/_/ to manage your database.
 
-- Check server logs: `pm2 logs`
-- Verify environment variables are set correctly
-- Ensure all required ports are open
-- Check disk space for uploads directory
-- Verify API keys are valid
+On first run, you'll need to create an admin account.
+
+## API Endpoints
+
+### Authentication
+
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and create a session
+- `GET /api/auth/logout` - Logout and destroy session
+- `GET /api/auth/me` - Get current authenticated user
+- `POST /api/auth/reset-password` - Request password reset
+- `POST /api/auth/preferences` - Save user preferences
+
+### Enhancement Presets
+
+- `GET /api/presets` - Get all presets for current user
+- `POST /api/presets` - Create a new preset
+- `GET /api/presets/:id` - Get a specific preset
+- `PUT /api/presets/:id` - Update a preset
+- `DELETE /api/presets/:id` - Delete a preset
+
+### Image Enhancement
+
+- `POST /api/enhance` - Enhance a single image
+- `POST /api/enhance/batch` - Enhance multiple images
+
+## Authentication Flow
+
+1. User registers or logs in via the API
+2. Server creates a session and stores token server-side
+3. Session ID is sent to client via HTTP-only cookie
+4. Client includes cookie in subsequent requests
+5. Server validates session on protected routes
+
+## Folder Structure
+
+- `public/` - Static files for the frontend including HTML, CSS, and client-side JavaScript
+- `server/config/` - Configuration files for Express and session management
+- `server/middleware/` - Authentication and error handling middleware
+- `server/routes/` - API route definitions
+- `server/services/` - Service layer for database and external API interactions
+- `server/utils/` - Utility functions like logging and validation
 
 ## License
 
-[Your License Here]
+MIT
 
 ## Support
 

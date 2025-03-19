@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouKOL Clone Auth Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div x-data="appState()" x-cloak class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center mb-8">YouKOL Clone Authentication Test</h1>
+    
+    <!-- Authentication Status -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4">Authentication Status</h2>
+      <div x-show="isLoading" class="flex justify-center items-center py-4">
+        <svg class="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+      <div x-show="!isLoading">
+        <p class="text-lg">
+          <span class="font-medium">Status:</span> 
+          <span x-show="user" class="text-green-600 font-bold">Authenticated</span>
+          <span x-show="!user" class="text-red-600 font-bold">Not Authenticated</span>
+        </p>
+        <div x-show="user" class="mt-4">
+          <p><span class="font-medium">User ID:</span> <span x-text="user.id"></span></p>
+          <p><span class="font-medium">Username:</span> <span x-text="user.username"></span></p>
+          <p><span class="font-medium">Email:</span> <span x-text="user.email"></span></p>
+          <p><span class="font-medium">Display Name:</span> <span x-text="user.profile?.displayName"></span></p>
+          <p><span class="font-medium">Onboarding Completed:</span> <span x-text="user.profile?.onboardingCompleted ? 'Yes' : 'No'"></span></p>
+        </div>
+        <div x-show="error" class="mt-4 p-3 bg-red-100 text-red-800 rounded">
+          <p x-text="error"></p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Auth Tabs -->
+    <div x-show="!user" class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="flex border-b">
+        <button 
+          @click="activeTab = 'login'" 
+          :class="{ 'bg-blue-500 text-white': activeTab === 'login', 'bg-gray-100': activeTab !== 'login' }"
+          class="flex-1 py-3 font-medium transition-colors"
+        >
+          Login
+        </button>
+        <button 
+          @click="activeTab = 'register'" 
+          :class="{ 'bg-blue-500 text-white': activeTab === 'register', 'bg-gray-100': activeTab !== 'register' }"
+          class="flex-1 py-3 font-medium transition-colors"
+        >
+          Register
+        </button>
+      </div>
+      
+      <!-- Login Form -->
+      <div x-show="activeTab === 'login'" class="p-6">
+        <form @submit.prevent="login">
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="identity">
+              Email or Username
+            </label>
+            <input 
+              x-model="loginForm.identity"
+              id="identity"
+              type="text"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            >
+          </div>
+          <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+              Password
+            </label>
+            <input 
+              x-model="loginForm.password"
+              id="password"
+              type="password"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            >
+          </div>
+          <div class="flex items-center justify-between">
+            <button 
+              type="submit"
+              :disabled="isLoading"
+              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Sign In
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Register Form -->
+      <div x-show="activeTab === 'register'" class="p-6">
+        <form @submit.prevent="register">
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+              Username
+            </label>
+            <input 
+              x-model="registerForm.username"
+              id="username"
+              type="text"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            >
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+              Email
+            </label>
+            <input 
+              x-model="registerForm.email"
+              id="email"
+              type="email"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            >
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="reg-password">
+              Password
+            </label>
+            <input 
+              x-model="registerForm.password"
+              id="reg-password"
+              type="password"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            >
+          </div>
+          <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="passwordConfirm">
+              Confirm Password
+            </label>
+            <input 
+              x-model="registerForm.passwordConfirm"
+              id="passwordConfirm"
+              type="password"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            >
+          </div>
+          <div class="flex items-center justify-between">
+            <button 
+              type="submit"
+              :disabled="isLoading"
+              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Register
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Logout Button -->
+    <div x-show="user" class="mt-6 text-center">
+      <button 
+        @click="logout"
+        :disabled="isLoading"
+        class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline"
+      >
+        Log Out
+      </button>
+    </div>
+    
+    <!-- User Preferences (if onboarding not completed) -->
+    <div 
+      x-show="user && user.profile && !user.profile.onboardingCompleted" 
+      class="mt-8 bg-white rounded-lg shadow-md p-6"
+    >
+      <h2 class="text-xl font-semibold mb-4">Complete Your Profile</h2>
+      <form @submit.prevent="savePreferences">
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2">
+            Usage Frequency
+          </label>
+          <select 
+            x-model="preferences.usageFrequency"
+            class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            required
+          >
+            <option value="" disabled>Select usage frequency</option>
+            <option value="daily">Daily - It will be part of my workflow</option>
+            <option value="weekly">Weekly - For regular projects</option>
+            <option value="monthly">Monthly - For occasional needs</option>
+            <option value="rarely">Rarely - Just when needed</option>
+          </select>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2">
+            Content Types (Select at least one)
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" x-model="preferences.contentTypes" value="social_media" class="form-checkbox">
+              <span>Social Media</span>
+            </label>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" x-model="preferences.contentTypes" value="professional" class="form-checkbox">
+              <span>Professional Work</span>
+            </label>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" x-model="preferences.contentTypes" value="portfolio" class="form-checkbox">
+              <span>Portfolio</span>
+            </label>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" x-model="preferences.contentTypes" value="personal" class="form-checkbox">
+              <span>Personal Photos</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-center mt-6">
+          <button 
+            type="submit"
+            :disabled="isLoading || !preferences.usageFrequency || preferences.contentTypes.length === 0"
+            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline"
+          >
+            Save Preferences
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    function appState() {
+      return {
+        isLoading: false,
+        user: null,
+        error: null,
+        activeTab: 'login',
+        
+        loginForm: {
+          identity: '',
+          password: ''
+        },
+        
+        registerForm: {
+          username: '',
+          email: '',
+          password: '',
+          passwordConfirm: ''
+        },
+        
+        preferences: {
+          usageFrequency: '',
+          contentTypes: [],
+          onboardingCompleted: true
+        },
+        
+        async init() {
+          this.isLoading = true;
+          try {
+            const response = await fetch('/api/auth/me', {
+              credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.user) {
+              this.user = data.user;
+              console.log('User data:', this.user);
+            }
+          } catch (error) {
+            console.error('Error checking authentication:', error);
+            this.error = 'Failed to check authentication status';
+          } finally {
+            this.isLoading = false;
+          }
+        },
+        
+        async login() {
+          this.isLoading = true;
+          this.error = null;
+          
+          try {
+            const response = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(this.loginForm),
+              credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || 'Login failed');
+            }
+            
+            if (data.success) {
+              this.user = data.user;
+              
+              // Reset form
+              this.loginForm = {
+                identity: '',
+                password: ''
+              };
+              
+              console.log('Logged in successfully:', this.user);
+            } else {
+              throw new Error(data.error || 'Login failed');
+            }
+          } catch (error) {
+            console.error('Login error:', error);
+            this.error = error.message;
+          } finally {
+            this.isLoading = false;
+          }
+        },
+        
+        async register() {
+          this.isLoading = true;
+          this.error = null;
+          
+          // Validate passwords match
+          if (this.registerForm.password !== this.registerForm.passwordConfirm) {
+            this.error = 'Passwords do not match';
+            this.isLoading = false;
+            return;
+          }
+          
+          try {
+            const response = await fetch('/api/auth/register', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(this.registerForm),
+              credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || 'Registration failed');
+            }
+            
+            if (data.success) {
+              console.log('Registered successfully');
+              
+              // Switch to login tab
+              this.activeTab = 'login';
+              
+              // Pre-fill login form with registration email
+              this.loginForm.identity = this.registerForm.email;
+              
+              // Reset registration form
+              this.registerForm = {
+                username: '',
+                email: '',
+                password: '',
+                passwordConfirm: ''
+              };
+              
+              // Show success message
+              this.error = 'Registration successful! Please log in.';
+            } else {
+              throw new Error(data.error || 'Registration failed');
+            }
+          } catch (error) {
+            console.error('Registration error:', error);
+            this.error = error.message;
+          } finally {
+            this.isLoading = false;
+          }
+        },
+        
+        async logout() {
+          this.isLoading = true;
+          
+          try {
+            const response = await fetch('/api/auth/logout', {
+              method: 'POST',
+              credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              this.user = null;
+              console.log('Logged out successfully');
+            } else {
+              throw new Error(data.error || 'Logout failed');
+            }
+          } catch (error) {
+            console.error('Logout error:', error);
+            this.error = error.message;
+          } finally {
+            this.isLoading = false;
+          }
+        },
+        
+        async savePreferences() {
+          this.isLoading = true;
+          this.error = null;
+          
+          try {
+            const response = await fetch('/api/user/preferences', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(this.preferences),
+              credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || 'Failed to save preferences');
+            }
+            
+            if (data.success) {
+              // Update user profile data
+              if (this.user && this.user.profile) {
+                this.user.profile.onboardingCompleted = true;
+                this.user.profile.usageFrequency = this.preferences.usageFrequency;
+                this.user.profile.contentTypes = this.preferences.contentTypes;
+              }
+              
+              console.log('Preferences saved successfully');
+              
+              // Reset form
+              this.preferences = {
+                usageFrequency: '',
+                contentTypes: [],
+                onboardingCompleted: true
+              };
+            } else {
+              throw new Error(data.error || 'Failed to save preferences');
+            }
+          } catch (error) {
+            console.error('Preferences error:', error);
+            this.error = error.message;
+          } finally {
+            this.isLoading = false;
+          }
+        }
+      };
+    }
+  </script>
+</body>
+</html> 

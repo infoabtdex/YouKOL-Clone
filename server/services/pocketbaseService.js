@@ -1,14 +1,33 @@
-const PocketBase = require('pocketbase');
+// We need to use dynamic import for PocketBase as it's an ES Module
 const logger = require('../utils/logger');
 
 // Configuration
 const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://127.0.0.1:8090';
 
-// Create PocketBase client
-const pb = new PocketBase(POCKETBASE_URL);
-
 // Service methods
 const pocketbaseService = {
+  // We'll initialize PocketBase on first use
+  _pb: null,
+  
+  /**
+   * Get or initialize the PocketBase instance
+   * @returns {Promise<Object>} - PocketBase instance
+   */
+  async getPocketBaseInstance() {
+    if (!this._pb) {
+      try {
+        // Dynamically import PocketBase
+        const PocketBase = (await import('pocketbase')).default;
+        this._pb = new PocketBase(POCKETBASE_URL);
+        logger.info('PocketBase client initialized');
+      } catch (error) {
+        logger.error('Failed to initialize PocketBase client', { error: error.message });
+        throw error;
+      }
+    }
+    return this._pb;
+  },
+
   /**
    * Register a new user
    * @param {Object} userData - User registration data
@@ -17,6 +36,7 @@ const pocketbaseService = {
   async registerUser(userData) {
     try {
       logger.info('Attempting to register new user', { email: userData.email });
+      const pb = await this.getPocketBaseInstance();
       const user = await pb.collection('users').create({
         email: userData.email,
         password: userData.password,
@@ -40,6 +60,7 @@ const pocketbaseService = {
   async loginUser(email, password) {
     try {
       logger.info('Attempting user login', { email });
+      const pb = await this.getPocketBaseInstance();
       const authData = await pb.collection('users').authWithPassword(email, password);
       logger.info('User login successful', { id: authData.record.id, email: authData.record.email });
       return authData;
@@ -61,6 +82,9 @@ const pocketbaseService = {
         return null;
       }
 
+      // Get PocketBase instance
+      const pb = await this.getPocketBaseInstance();
+      
       // Set the auth token in the PocketBase instance
       pb.authStore.save(token, null);
       
@@ -76,6 +100,7 @@ const pocketbaseService = {
       }
     } catch (error) {
       logger.error('Error getting authenticated user', { error: error.message });
+      const pb = await this.getPocketBaseInstance();
       pb.authStore.clear();
       return null;
     }
@@ -84,8 +109,9 @@ const pocketbaseService = {
   /**
    * Logout a user by clearing the auth store
    */
-  logout() {
+  async logout() {
     logger.info('Logging out user');
+    const pb = await this.getPocketBaseInstance();
     pb.authStore.clear();
     return { success: true };
   },
@@ -98,6 +124,7 @@ const pocketbaseService = {
   async requestPasswordReset(email) {
     try {
       logger.info('Requesting password reset', { email });
+      const pb = await this.getPocketBaseInstance();
       await pb.collection('users').requestPasswordReset(email);
       logger.info('Password reset email sent', { email });
       return { success: true, message: 'Password reset email sent' };
@@ -116,6 +143,7 @@ const pocketbaseService = {
   async createPreset(userId, presetData) {
     try {
       logger.info('Creating new preset', { userId });
+      const pb = await this.getPocketBaseInstance();
       const preset = await pb.collection('presets').create({
         user: userId,
         name: presetData.name,
@@ -138,6 +166,7 @@ const pocketbaseService = {
   async getUserPresets(userId) {
     try {
       logger.info('Fetching presets for user', { userId });
+      const pb = await this.getPocketBaseInstance();
       const presets = await pb.collection('presets').getFullList({
         filter: `user="${userId}"`,
         sort: 'created',
@@ -158,6 +187,7 @@ const pocketbaseService = {
   async getPreset(presetId) {
     try {
       logger.info('Fetching preset by ID', { presetId });
+      const pb = await this.getPocketBaseInstance();
       const preset = await pb.collection('presets').getOne(presetId);
       logger.info('Preset fetched successfully', { presetId });
       return preset;
@@ -176,6 +206,7 @@ const pocketbaseService = {
   async updatePreset(presetId, presetData) {
     try {
       logger.info('Updating preset', { presetId });
+      const pb = await this.getPocketBaseInstance();
       const preset = await pb.collection('presets').update(presetId, presetData);
       logger.info('Preset updated successfully', { presetId });
       return preset;
@@ -193,6 +224,7 @@ const pocketbaseService = {
   async deletePreset(presetId) {
     try {
       logger.info('Deleting preset', { presetId });
+      const pb = await this.getPocketBaseInstance();
       await pb.collection('presets').delete(presetId);
       logger.info('Preset deleted successfully', { presetId });
       return true;
@@ -211,6 +243,7 @@ const pocketbaseService = {
   async saveUserPreferences(userId, preferences) {
     try {
       logger.info('Saving user preferences', { userId });
+      const pb = await this.getPocketBaseInstance();
       const user = await pb.collection('users').update(userId, {
         preferences: JSON.stringify(preferences),
         onboardingCompleted: true
@@ -221,14 +254,6 @@ const pocketbaseService = {
       logger.error('Failed to save user preferences', { error: error.message, userId });
       throw error;
     }
-  },
-
-  /**
-   * Get instance of PocketBase client
-   * @returns {PocketBase} - PocketBase client instance
-   */
-  getPocketBaseInstance() {
-    return pb;
   }
 };
 

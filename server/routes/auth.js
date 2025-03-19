@@ -137,10 +137,10 @@ router.post('/login', async (req, res) => {
  * @desc    Logout user
  * @access  Public
  */
-router.get('/logout', (req, res) => {
+router.get('/logout', async (req, res) => {
   try {
     // Clear PocketBase auth store
-    pocketbaseService.logout();
+    await pocketbaseService.logout();
     
     // Destroy session
     req.session.destroy((err) => {

@@ -38,6 +38,11 @@ The server is built around an Express.js application that:
    - Processes JSON request bodies
    - Supports increased payload size for base64 images
 
+5. **Session Management**
+   - Express-session for server-side session storage
+   - Secure, HTTP-only cookies
+   - Configurable session lifetime
+
 ### API Endpoints
 
 1. **`/api/enhance-image`**
@@ -45,10 +50,11 @@ The server is built around an Express.js application that:
    - Processes images through Deep Image API
    - Returns enhanced image data or URLs
 
-2. **Additional Utility Endpoints**
-   - Health check endpoint
-   - API key verification
-   - Version information
+2. **Authentication Endpoints** (to be implemented)
+   - User registration
+   - User login
+   - Session validation
+   - Logout
 
 ## External API Integration
 
@@ -57,15 +63,11 @@ The server is built around an Express.js application that:
 - Manages authentication with API key
 - Processes API responses and error handling
 
-### Grok Vision API
-- Provides AI-powered image analysis
-- Integrates with the enhancement workflow
-
 ## PocketBase Integration
 
-The server includes optional integration with PocketBase:
-- User authentication and management
-- Data persistence
+The server will include integration with PocketBase:
+- User authentication and management through server-side proxy
+- Data persistence for user profiles and enhancement presets
 - Configuration stored in environment variables
 
 ## File Management
@@ -103,16 +105,16 @@ The server includes optional integration with PocketBase:
    - Input sanitization
    - Rate limiting (configurable)
 
-3. **JWT Authentication**
-   - Token-based authentication
-   - Configurable secret and expiration
-   - Role-based access control
+3. **Authentication**
+   - Server-side session management
+   - Secure HTTP-only cookies
+   - CSRF protection
 
 ## Environment Configuration
 
 The server uses dotenv for environment configuration with the following key variables:
-- **API Keys**: `DEEP_IMAGE_API_KEY`, `GROK_API_KEY`
-- **Server Config**: `PORT`, `NODE_ENV`
-- **Security**: `ALLOWED_ORIGINS`, `JWT_SECRET`
-- **PocketBase**: `POCKETBASE_URL`, `POCKETBASE_TIMEOUT`
-- **Logging**: `LOG_LEVEL`
+- **API Keys**: `DEEP_IMAGE_API_KEY`
+- **Server Config**: `PORT`, `NODE_ENV`, `SESSION_SECRET`
+- **Security**: `ALLOWED_ORIGINS`
+- **PocketBase**: `POCKETBASE_URL`, `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD`
+- **Logging**: `LOG_LEVEL` 

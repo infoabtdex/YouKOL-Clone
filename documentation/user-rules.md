@@ -1,6 +1,6 @@
 # Global Rules for Cursor
 
-These rules govern Cursor's behavior across **all projects**, promoting scalable, efficient, and organized management of code, tasks, and documentation. Project-specific details, including file structures and tailored guidelines, are maintained in each project's `/documentation` directory and should be referenced as needed. Keep a copy of the Global User Rules in `/documentation/user_rules.md` for easy maintenance, this file should never be changed.
+These rules govern Cursor's behavior across **all projects**, promoting scalable, efficient, and organized management of code, tasks, and documentation. Project-specific details, including file structures and tailored guidelines, are maintained in each project's `/documentation` directory and should be referenced as needed. Keep a copy of the Global User Rules in `/documentation/user-rules.md` for easy maintenance, this file should never be changed.
 
 ---
 
@@ -13,7 +13,9 @@ This structure should be initialized and kept in all projects
 ├── documentation/     # Project documentation
 ├── temp/              # Temporary working files
 │   ├── active/        # Currently active work files
-│   └── dormant/       # Temporarily unused files
+|   ├── dormant/       # Temporarily unused files
+│   └── intermediate/  # Intermediate files to manage complex tasks
+     
 ├── project specific files
 ```
 
@@ -30,7 +32,7 @@ This structure should be initialized and kept in all projects
    - For tasks exceeding this limit, break them into smaller, manageable parts using intermediate files (see below).
 
 3. **Leverage Intermediate Files for Large Tasks**  
-   - Use temporary intermediate files to manage extensive contexts or complex tasks.  
+   - Create temporary intermediate files in `/temp/intermediate/` to manage extensive contexts or complex tasks.  
    - Name files sequentially (e.g., `intermediate_1.md`, `intermediate_2.md`) for clarity.  
    - Consolidate results into the final output and process into active/dormant file management once the task is complete.
 
@@ -84,4 +86,4 @@ Intermediate files are a key tool for managing large or complex tasks:
 
 ## Project-Specific Rules
 
-For detailed instructions, such as file structures (e.g., `/temp/active`, `/temp/dormant`), active/dormant file management, and other project-specific guidelines, refer to the `/documentation/project_rules.md` file and `/documentation` directory in each project. The files contained in this directory contain project specific instructions and complement the global User Rules and allow for customization tailored to individual project needs.
+For detailed instructions, such as file structures (e.g., `/temp/active`, `/temp/dormant`), active/dormant file management, and other project-specific guidelines, refer to the `/documentation/project-rules.md` file and `/documentation` directory in each project. The files contained in this directory contain project specific instructions and complement the global User Rules and allow for customization tailored to individual project needs. 

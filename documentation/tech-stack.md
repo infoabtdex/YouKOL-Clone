@@ -1,6 +1,6 @@
-# ImaKOL Technical Stack
+# YouKOL Clone Technical Stack
 
-This document outlines the technologies used in the ImaKOL application.
+This document outlines the technologies used in the YouKOL Clone application.
 
 ## Frontend
 
@@ -20,6 +20,7 @@ This document outlines the technologies used in the ImaKOL application.
 - **Server-side session management**: Using Express-session with secure cookies
 - **PocketBase authentication**: Leveraged through Node.js server as a proxy
 - **HTTP-only cookies**: For secure token storage
+- **No client-side token storage**: Tokens never exposed to frontend
 
 ## Data Storage
 
@@ -62,4 +63,4 @@ This document outlines the technologies used in the ImaKOL application.
 - **PostCSS**: Process Tailwind CSS
 - **Babel**: JavaScript compatibility for older browsers
 
-This stack provides a lightweight yet powerful foundation for the ImaKOL application, focusing on performance, maintainability, and developer experience.
+This stack provides a lightweight yet powerful foundation for the YouKOL Clone application, focusing on performance, maintainability, and developer experience. 

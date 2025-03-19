@@ -1,12 +1,12 @@
 # Sample package.json for Server-side Implementation
 
-This file provides a starter `package.json` configuration for the Node.js server-side implementation that communicates with Pocketbase.
+This file provides a starter `package.json` configuration for the Node.js server-side implementation that communicates with PocketBase.
 
 ```json
 {
-  "name": "imakol-server",
+  "name": "youkol-clone",
   "version": "1.0.0",
-  "description": "Server-side implementation for ImaKOL using Node.js and Pocketbase",
+  "description": "Server-side implementation for YouKOL Clone using Node.js and PocketBase",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
@@ -35,7 +35,7 @@ This file provides a starter `package.json` configuration for the Node.js server
   "engines": {
     "node": ">=16.0.0"
   },
-  "author": "ImaKOL Team",
+  "author": "YouKOL Clone Team",
   "license": "MIT"
 }
 ```

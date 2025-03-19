@@ -1,6 +1,6 @@
 # Frontend Structure
 
-The YouKOL Clone frontend is built using a lightweight stack of HTML, CSS, Alpine.js, and vanilla JavaScript. The application follows a single-page architecture (SPA) pattern managed through Alpine.js state management.
+The YouKOL Clone frontend is built using a lightweight stack of HTML, CSS, Alpine.js, and JavaScript. The application follows a single-page architecture (SPA) pattern managed through Alpine.js state management.
 
 ## Core Files
 
@@ -105,13 +105,12 @@ The application state is managed through Alpine.js with the following key functi
 
 The application uses a combination of:
 - Tailwind CSS utility classes
-- DaisyUI components
 - Custom CSS for specialized components
 - CSS variables for theme consistency
 
 ## Integration with Backend
 
-- API requests for enhancement handled through Axios
+- API requests for enhancement handled through Fetch API
 - File uploads managed with FormData
 - Error handling and retry mechanisms
-- Progress tracking for long-running operations
+- Progress tracking for long-running operations 

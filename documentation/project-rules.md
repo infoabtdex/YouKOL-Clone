@@ -1,6 +1,6 @@
-# ImaKOL - Project Rules
+# YouKOL Clone - Project Rules
 
-This document outlines specific guidelines and rules for the ImaKOL project, supplementing the global user rules. These project-specific instructions ensure consistency, quality, and efficiency across the codebase.
+This document outlines specific guidelines and rules for the YouKOL Clone project, supplementing the global user rules. These project-specific instructions ensure consistency, quality, and efficiency across the codebase.
 
 ## File Structure Guidelines
 
@@ -16,6 +16,12 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
 /
 ├── documentation/     # Project documentation
 ├── public/            # Static assets served directly
+├── server/            # Server-side implementation
+│   ├── routes/        # API routes
+│   ├── middleware/    # Express middleware
+│   ├── services/      # Business logic
+│   ├── config/        # Configuration
+│   └── utils/         # Utility functions
 ├── uploads/           # Temporary storage for uploaded files
 ├── logs/              # Application logs
 ├── pocketbase/        # PocketBase executable and database
@@ -23,7 +29,7 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
 │   ├── active/        # Currently active work files
 │   └── dormant/       # Temporarily unused files
 ├── node_modules/      # Dependencies (not tracked in git)
-└── workflows/         # CI/CD workflow configurations
+└── index.html         # Main frontend entry point
 ```
 
 ## Coding Standards
@@ -68,12 +74,12 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
    - Implement proper CORS configuration
    - Follow principle of least privilege
 
-### Pocketbase Integration
+### PocketBase Integration
 
 1. **Authentication Guidelines**
-   - Use the Pocketbase SDK for authentication operations
-   - Implement token storage in localStorage with appropriate expiration
-   - Create proper authentication state management
+   - Use the PocketBase SDK for authentication operations through server-side
+   - All authentication tokens remain server-side only
+   - Use Express session with HTTP-only cookies for client sessions
    - Support remember-me functionality for persistent sessions
 
 2. **Database Schema Practices**
@@ -83,16 +89,32 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
    - Include validation rules for all fields
 
 3. **Data Access Patterns**
-   - Use the appropriate Pocketbase methods for CRUD operations
+   - Use the appropriate PocketBase methods for CRUD operations
    - Implement proper error handling for database operations
    - Cache frequently accessed data when appropriate
    - Use transactions for related operations
 
 4. **User Data Security**
-   - Implement proper authorization rules in Pocketbase Admin UI
+   - Implement proper authorization rules in PocketBase Admin UI
    - Validate permissions on both client and server side
    - Follow the principle of least privilege for collection access
    - Apply proper sanitization for user-generated content
+
+## File Naming Conventions
+
+1. **Documentation Files**
+   - Use kebab-case for all documentation files (e.g., `server-side-auth-flow.md`)
+   - Use descriptive names that clearly indicate the file's content
+   - Group related files with common prefixes when appropriate
+
+2. **Code Files**
+   - JavaScript files: Use kebab-case (e.g., `auth-middleware.js`)
+   - CSS files: Use kebab-case (e.g., `component-styles.css`)
+   - HTML files: Use kebab-case (e.g., `user-profile.html`)
+
+3. **Configuration Files**
+   - Use standard naming conventions for configuration files (e.g., `.env`, `package.json`)
+   - Use kebab-case for custom configuration files (e.g., `webpack-config.js`)
 
 ## Development Workflow
 
@@ -129,13 +151,7 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
    - Cache responses when appropriate
    - Document any API-specific behavior
 
-2. **Grok Vision API**
-   - Follow authentication best practices
-   - Implement retry mechanism with backoff
-   - Handle response parsing consistently
-   - Document API version dependencies
-
-3. **Pocketbase API**
+2. **PocketBase API**
    - Use the official SDK for all operations
    - Implement proper authentication flow
    - Handle realtime subscriptions efficiently
@@ -156,8 +172,8 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
    - Handle password reset flow
 
 3. **Session Management**
-   - Securely store authentication tokens
-   - Implement token refresh mechanism
+   - Securely store authentication tokens server-side only
+   - Implement token refresh mechanism on the server
    - Handle session expiration gracefully
    - Support multiple device logins
 
@@ -187,46 +203,6 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
    - Support A/B comparison between presets
    - Implement preset organization features
 
-## Testing Strategy
-
-1. **Manual Testing Checklist**
-   - Verify all user stories
-   - Test on multiple browsers
-   - Test on multiple device sizes
-   - Validate all error conditions
-
-2. **API Testing**
-   - Verify correct request formatting
-   - Validate response handling
-   - Test timeout and error scenarios
-   - Verify file upload edge cases
-
-3. **Authentication Testing**
-   - Verify registration flow including validations
-   - Test login with correct and incorrect credentials
-   - Validate password reset functionality
-   - Test session persistence and expiration
-
-## Deployment Guidelines
-
-1. **Environment Configuration**
-   - Document all required environment variables
-   - Provide sensible defaults where possible
-   - Validate environment before startup
-   - Document any environment-specific behavior
-
-2. **Pocketbase Deployment**
-   - Document Pocketbase version requirements
-   - Include database backup and restore procedures
-   - Configure proper security settings
-   - Set up automated backups
-
-3. **Production Preparation**
-   - Remove development dependencies
-   - Optimize assets for production
-   - Configure appropriate CORS settings
-   - Set production logging levels
-
 ## Documentation Requirements
 
 1. **Code Documentation**
@@ -242,26 +218,7 @@ This document outlines specific guidelines and rules for the ImaKOL project, sup
    - Include screenshots for UI changes
 
 3. **Schema Documentation**
-   - Document all Pocketbase collections
+   - Document all PocketBase collections
    - Include field types and validations
    - Document relations between collections
-   - Update when schema changes
-
-## Changelog Management
-
-When making changes to the codebase:
-
-1. Document all significant changes in `changelog.md`
-2. Use the format: `[YYYY-MM-DD] - [Type] - [Description]`
-3. Types: `Added`, `Changed`, `Fixed`, `Removed`, `Security`
-4. Group related changes under a single date
-5. Include references to relevant documentation
-
-## File State Tracking
-
-Maintain the `index.md` file with:
-
-1. A list of all active files and their purpose
-2. Current project status and priorities
-3. Known issues or limitations
-4. References to relevant external resources
+   - Update when schema changes 

@@ -67,7 +67,7 @@ Client Browser  ↔  Express Server  ↔  Deep Image API
  User Interface     File Storage     Enhancement Processing
       ↑↓
    PocketBase
-  (if enabled)
+  (for authentication)
 ```
 
 ## State Transitions
@@ -124,22 +124,22 @@ For multiple image enhancement:
 4. Aggregated results handling
 5. Comprehensive completion notification
 
-## Authentication Flow (if enabled)
+## Authentication Flow (when implemented)
 
 1. **User Registration**
    ```
-   Registration form → Validation → PocketBase registration →
-   JWT generation → User session start
+   Registration form → Validation → Server-side PocketBase registration →
+   Session creation → User session start
    ```
 
 2. **User Login**
    ```
-   Login form → Credential verification → PocketBase authentication →
-   JWT generation → User session start
+   Login form → Credential verification → Server-side PocketBase authentication →
+   Session creation → User session start
    ```
 
 3. **Session Management**
    ```
-   JWT storage → Token validation → Automatic renewal →
+   Server-side session → Token validation → Automatic renewal →
    Session expiration handling
-   ```
+   ``` 

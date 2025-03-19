@@ -1,6 +1,6 @@
 # Server-Side Implementation Structure
 
-This document outlines the directory structure and file organization for implementing the server-side Pocketbase integration.
+This document outlines the directory structure and file organization for implementing the server-side PocketBase integration for YouKOL Clone.
 
 ## Directory Structure
 

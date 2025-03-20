@@ -7,6 +7,9 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('./logger');
 
+// Import the PocketBase service
+const pbService = require('./server/services/pocketbase');
+
 // Load environment variables
 dotenv.config();
 
@@ -49,19 +52,13 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
-    // Allow all origins if '*' is in the list
-    if (allowedOrigins.includes('*')) {
-      return callback(null, true);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `CORS Error: This server does not allow access from origin ${origin}. Update ALLOWED_ORIGINS in .env file.`;
-      logger.error(`❌ ${msg}`);
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
   },
-  credentials: true
+  credentials: true // Allow cookies to be sent with requests
 }));
 
 // Serve uploaded files temporarily for the Deep Image API
@@ -423,6 +420,14 @@ app.get('/api/test-grok', (req, res) => {
     message: 'Grok Vision API proxy endpoint is ready',
     instructions: 'POST to /api/generate-caption with mediaItems array containing image data'
   });
+});
+
+// Add PocketBase health check endpoint
+app.get('/api/health/pocketbase', async (req, res) => {
+  if (await pbService.isHealthy()) {
+    return res.status(200).json({ status: 'ok', message: 'PocketBase is healthy' });
+  }
+  return res.status(503).json({ status: 'error', message: 'PocketBase is not responding' });
 });
 
 // Error handling middleware

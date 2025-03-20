@@ -1,18 +1,18 @@
 # Step 3: Implement PocketBase Service
 
-This document provides detailed instructions for implementing the PocketBase service for authentication and user management in the YouKOL Clone project.
+In this step, we'll expand our PocketBase service module with comprehensive methods for user authentication and profile management.
 
 ## Overview
 
-We'll expand the PocketBase service module created in Step 1 to include comprehensive methods for:
+We'll enhance the PocketBase service created in Step 1 with methods for:
 
-1. User authentication (registration, login, logout)
+1. User authentication (registration, login, password reset)
 2. User profile management
-3. Session handling
+3. Utility methods for complete user data retrieval
 
-## Enhanced PocketBase Service Implementation
+## Implementation
 
-Replace the existing `server/services/pocketbase.js` file with this more comprehensive implementation:
+Let's enhance the PocketBase service in `server/services/pocketbase.js`:
 
 ```javascript
 // server/services/pocketbase.js
@@ -324,9 +324,9 @@ const pocketBaseService = new PocketBaseService();
 module.exports = pocketBaseService;
 ```
 
-## Create Test Script for PocketBase Service
+## Testing the Enhanced PocketBase Service
 
-Create a test script to verify the PocketBase service functionality:
+Let's create a test script to verify the enhanced PocketBase service:
 
 ```javascript
 // test/test-pocketbase.js
@@ -340,26 +340,31 @@ async function testPocketBaseService() {
   
   try {
     // Test health check
-    console.log('Testing health check...');
+    console.log('\nTesting health check...');
     const isHealthy = await pbService.isHealthy();
-    console.log('Health check result:', isHealthy);
+    console.log(`Health check result: ${isHealthy ? '✅ Healthy' : '❌ Not healthy'}`);
     
     if (!isHealthy) {
       console.error('PocketBase is not healthy, aborting tests.');
       return;
     }
     
+    // Generate a unique email and username for testing
+    const timestamp = Date.now();
+    const testEmail = `test-${timestamp}@example.com`;
+    const testUsername = `testuser-${timestamp}`;
+    
     // Test user registration
     console.log('\nTesting user registration...');
     const testUser = {
-      email: `test-${Date.now()}@example.com`,
+      email: testEmail,
       password: 'Password123!',
       passwordConfirm: 'Password123!',
-      username: `testuser-${Date.now()}`
+      username: testUsername
     };
     
     const user = await pbService.registerUser(testUser);
-    console.log('User registered:', user.id);
+    console.log('✅ User registered:', user.id);
     
     // Test user profile creation
     console.log('\nTesting user profile creation...');
@@ -371,17 +376,17 @@ async function testPocketBaseService() {
     };
     
     const profile = await pbService.createUserProfile(profileData);
-    console.log('Profile created:', profile.id);
+    console.log('✅ Profile created:', profile.id);
     
     // Test login
     console.log('\nTesting user login...');
-    const authData = await pbService.loginUser(testUser.email, testUser.password);
-    console.log('Login successful:', authData.record.id);
+    const authData = await pbService.loginUser(testEmail, testUser.password);
+    console.log('✅ Login successful:', authData.record.id);
     
     // Test getting complete user data
     console.log('\nTesting get complete user data...');
     const userData = await pbService.getCompleteUserData(user.id);
-    console.log('Complete user data:', userData);
+    console.log('✅ Complete user data retrieved:', userData.id);
     
     // Test update onboarding status
     console.log('\nTesting update onboarding status...');
@@ -391,11 +396,14 @@ async function testPocketBaseService() {
     };
     
     const updatedProfile = await pbService.updateOnboardingStatus(user.id, onboardingData);
-    console.log('Onboarding status updated:', updatedProfile.onboarding_completed);
+    console.log('✅ Onboarding status updated:', updatedProfile.onboarding_completed);
     
     console.log('\nAll tests passed successfully!');
   } catch (error) {
-    console.error('Test failed:', error);
+    console.error('❌ Test failed:', error.message);
+    if (error.data) {
+      console.error('Error details:', error.data);
+    }
   }
 }
 
@@ -403,29 +411,46 @@ async function testPocketBaseService() {
 testPocketBaseService();
 ```
 
-## Add Test Script to Package.json
+## Update package.json with Test Script
 
 Add the test script to your `package.json`:
 
 ```json
 {
   "scripts": {
-    // ...existing scripts
+    // existing scripts
     "test-pb": "node test/test-pocketbase.js"
   }
 }
 ```
 
-## Verify the Service Implementation
+## Implementation Steps
 
-To verify the PocketBase service:
+1. Replace the content of `server/services/pocketbase.js` with the enhanced implementation above
+2. Create the test directory if it doesn't exist: `mkdir -p test`
+3. Create the test script at `test/test-pocketbase.js`
+4. Update `package.json` to include the test script
+5. Run the test to verify the implementation: `npm run test-pb`
 
-1. Ensure PocketBase is running
-2. Run the test script:
+## Key Enhancements
 
-```bash
-npm run test-pb
-```
+The enhanced PocketBase service now includes:
+
+1. **User Authentication Methods**
+   - Registration with proper error handling
+   - Login with email or username
+   - Password reset functionality
+
+2. **User Profile Management**
+   - Profile creation
+   - Profile retrieval
+   - Profile updates
+   - Onboarding status management
+
+3. **Utility Methods**
+   - Health check
+   - Complete user data retrieval
+   - Default profile creation if missing
 
 ## Next Steps
 

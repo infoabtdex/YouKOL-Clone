@@ -10,17 +10,20 @@
     "setup-collections": "node setup/collections.js",
     "test-pb": "node test/test-pocketbase.js",
     "init-pb": "node setup/initialize-pocketbase.js",
-    "check-pb": "node test/check-pocketbase.js"
+    "check-pb": "node test/check-pocketbase.js",
+    "test-auth": "node test/test-auth-routes.js",
+    "test-auth-with-server": "powershell -Command \"$env:NODE_ENV='test'; start-process node -ArgumentList 'server.js' -NoNewWindow; sleep 2; node test/test-auth-routes.js\""
   },
   "dependencies": {
     "axios": "1.8.4",
     "canvas": "3.1.0",
-    "cookie-parser": "^1.4.6",
+    "cookie-parser": "1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
-    "express-session": "^1.18.0",
+    "express-session": "1.18.1",
+    "express-validator": "7.2.1",
     "form-data": "4.0.2",
     "helmet": "^7.1.0",
     "multer": "^1.4.5-lts.1",

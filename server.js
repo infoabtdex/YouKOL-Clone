@@ -5,10 +5,17 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
 const logger = require('./logger');
 
 // Import the PocketBase service
 const pbService = require('./server/services/pocketbase');
+
+// Import session configuration
+const configureSession = require('./server/middleware/session');
+
+// Import routes
+const authRoutes = require('./server/routes/auth');
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +68,18 @@ app.use(cors({
   credentials: true // Allow cookies to be sent with requests
 }));
 
+// Parse cookies
+app.use(cookieParser());
+
+// Configure session middleware
+app.use(configureSession());
+
+// Parse JSON body
+app.use(express.json({ limit: '10mb' }));  // Increased limit for base64 images
+
+// Parse URL-encoded bodies
+app.use(express.urlencoded({ extended: true }));
+
 // Serve uploaded files temporarily for the Deep Image API
 app.use('/temp-uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -97,11 +116,25 @@ const upload = multer({
   }
 });
 
-// Parse JSON body
-app.use(express.json({ limit: '10mb' }));  // Increased limit for base64 images
-
 // Serve static files from the current directory (for development)
 app.use(express.static(__dirname));
+
+// Register authentication routes
+app.use('/api/auth', authRoutes);
+
+// Import authentication middleware if needed for protected routes
+const { attachUserData, requireAuth } = require('./server/middleware/auth');
+
+// Attach user data to request if authenticated
+app.use(attachUserData);
+
+// Example of a protected route
+app.get('/api/profile', requireAuth, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user
+  });
+});
 
 // Serve index.html at the root route
 app.get('/', (req, res) => {

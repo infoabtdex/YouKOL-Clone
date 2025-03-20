@@ -71,12 +71,30 @@ class PocketBaseService {
   
   // ========== Health Check Methods ==========
   
+  /**
+   * Check if PocketBase is healthy and accessible
+   * @returns {Promise<boolean>} - True if healthy, false otherwise
+   */
   async isHealthy() {
     try {
-      await this.pb.health.check();
+      logger.debug('Performing PocketBase health check');
+      
+      // Disable auto-cancellation for health check
+      this.pb.autoCancellation(false);
+      
+      const result = await this.pb.health.check();
+      
+      // Re-enable auto-cancellation
+      this.pb.autoCancellation(true);
+      
+      logger.debug('PocketBase health check successful', { result });
       return true;
     } catch (error) {
-      logger.error('PocketBase health check failed', { error: error.message });
+      logger.error('PocketBase health check failed', { 
+        error: error.message,
+        code: error.status || 'unknown',
+        data: error.data || {}
+      });
       return false;
     }
   }
@@ -187,11 +205,52 @@ class PocketBaseService {
   async createUserProfile(profileData) {
     try {
       logger.info('Creating user profile', { userId: profileData.user });
-      const profile = await this.pb.collection('user_profiles').create(profileData);
+      
+      // Ensure required fields are present
+      const requiredProfile = {
+        user: profileData.user,
+        display_name: profileData.display_name || 'New User',
+        onboarding_completed: typeof profileData.onboarding_completed === 'boolean' ? 
+          profileData.onboarding_completed : false
+      };
+      
+      // Add optional fields only if they have valid values (not null or undefined)
+      if (profileData.bio) requiredProfile.bio = profileData.bio;
+      
+      // Handle usage_frequency (enum field)
+      if (profileData.usage_frequency) requiredProfile.usage_frequency = profileData.usage_frequency;
+      
+      // Handle content_types (JSON field)
+      if (profileData.content_types && profileData.content_types !== null) {
+        // Ensure JSON fields are properly stringified if they're not already strings
+        if (typeof profileData.content_types === 'object') {
+          requiredProfile.content_types = JSON.stringify(profileData.content_types);
+        } else {
+          requiredProfile.content_types = profileData.content_types;
+        }
+      }
+      
+      // Handle preferences (JSON field)
+      if (profileData.preferences && profileData.preferences !== null) {
+        // Ensure JSON fields are properly stringified if they're not already strings
+        if (typeof profileData.preferences === 'object') {
+          requiredProfile.preferences = JSON.stringify(profileData.preferences);
+        } else {
+          requiredProfile.preferences = profileData.preferences;
+        }
+      }
+      
+      logger.debug('Creating profile with data', { profileData: requiredProfile });
+      
+      const profile = await this.pb.collection('user_profiles').create(requiredProfile);
       logger.info('User profile created successfully', { id: profile.id });
       return profile;
     } catch (error) {
-      logger.error('Failed to create user profile', { error: error.message });
+      logger.error('Failed to create user profile', { 
+        error: error.message, 
+        data: error.data,
+        profileData: JSON.stringify(profileData)
+      });
       throw error;
     }
   }
@@ -264,6 +323,44 @@ class PocketBaseService {
     } catch (error) {
       logger.error('Failed to check onboarding status', { error: error.message });
       return false;
+    }
+  }
+  
+  /**
+   * Get a user's profile, creating a default one if it doesn't exist
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} - User profile
+   */
+  async getOrCreateUserProfile(userId) {
+    try {
+      try {
+        // Try to get the existing profile
+        return await this.getUserProfile(userId);
+      } catch (error) {
+        // If profile doesn't exist, create a default one
+        if (error.status === 404) {
+          logger.info('Profile not found, creating default profile', { userId });
+          
+          // Get the user info to use their username
+          const user = await this.getUserById(userId);
+          
+          // Create a default profile with ONLY required fields
+          // This avoids sending null values for JSON fields
+          const defaultProfile = {
+            user: userId,
+            display_name: user.username || 'New User',
+            onboarding_completed: false
+          };
+          
+          return await this.createUserProfile(defaultProfile);
+        }
+        
+        // For any other error, just throw it
+        throw error;
+      }
+    } catch (error) {
+      logger.error('Failed to get or create user profile', { userId, error: error.message });
+      throw error;
     }
   }
   

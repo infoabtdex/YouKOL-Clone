@@ -8,6 +8,15 @@ node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
+package-lock.json
+
+# PocketBase
+pb_data/
+pocketbase
+pocketbase.exe
+pocketbase_windows/
+pocketbase_windows/pb_data/
+pocketbase_windows/pb_migrations/
 
 # Uploads directory
 /uploads/
@@ -15,7 +24,31 @@ yarn-error.log
 # Logs
 logs
 *.log
+npm-debug.log*
+
+# Temporary files
+/temp/
+.tmp/
+.temp/
+
+# Build files
+/dist/
+/build/
+
+# Coverage directory used by tools like istanbul
+coverage/
 
 # OS specific files
 .DS_Store
 Thumbs.db
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

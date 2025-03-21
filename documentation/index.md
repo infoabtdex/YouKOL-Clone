@@ -107,3 +107,27 @@ This architecture enhances security by:
 - [PocketBase Documentation](https://pocketbase.io/docs)
 - [Alpine.js Documentation](https://alpinejs.dev/start-here)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+
+## Authentication System Documentation
+
+- [PocketBase Authentication Implementation Guide](pocketbase-auth-implementation-guide.md)
+- [Server-Side Authentication Implementation](server-side-implementation.md)
+
+## Feature Documentation
+
+- [Enhancement Preferences Feature](../temp/active/enhancement_preferences_implementation_guide.md)
+
+## API Documentation
+
+- [Authentication API Endpoints](auth-api-endpoints.md)
+- [Profile API Endpoints](profile-api-endpoints.md)
+
+## Security Documentation
+
+- [Security Best Practices](security-best-practices.md)
+- [CSRF Protection Implementation](csrf-protection.md)
+
+## User Experience
+
+- [Onboarding Flow](onboarding-flow.md)
+- [User Profile Management](user-profile-management.md)

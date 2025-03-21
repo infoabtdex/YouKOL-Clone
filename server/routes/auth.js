@@ -33,18 +33,8 @@ router.post('/register', [
   })
 ], async (req, res) => {
   try {
-    // Verify CSRF token is present in header
-    if (!req.csrfToken || req.get('X-CSRF-Token') !== req.csrfToken()) {
-      logger.warn('CSRF token validation failed', { 
-        ip: req.ip,
-        path: req.path,
-        method: req.method
-      });
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Invalid or missing CSRF token'
-      });
-    }
+    // CSRF validation is now handled by the csurf middleware
+    // No need to manually check the token here
     
     // Check for validation errors
     const errors = validationResult(req);
@@ -119,18 +109,8 @@ router.post('/login', [
     .notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   try {
-    // Verify CSRF token is present in header
-    if (!req.csrfToken || req.get('X-CSRF-Token') !== req.csrfToken()) {
-      logger.warn('CSRF token validation failed', { 
-        ip: req.ip,
-        path: req.path,
-        method: req.method
-      });
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Invalid or missing CSRF token'
-      });
-    }
+    // CSRF validation is now handled by the csurf middleware
+    // No need to manually check the token here
     
     // Check for IP-based brute force protection
     if (trackLoginAttempt(req.ip)) {

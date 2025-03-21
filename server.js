@@ -178,16 +178,18 @@ app.use(express.static(__dirname));
 app.use('/api/auth/login', authLimiter); // Apply stricter rate limiting to login
 app.use('/api/auth/register', authLimiter); // Apply stricter rate limiting to registration
 app.use('/api/auth/password-reset', authLimiter); // Apply stricter rate limiting to password reset
-app.use('/api/auth', csrfProtection, authRoutes);
-app.use('/api/profile', csrfProtection, apiLimiter, profileRoutes);
 
-// CSRF token endpoint
+// CSRF token endpoint - must be before protected routes
 app.get('/api/csrf-token', csrfProtection, (req, res) => {
   res.json({ 
     success: true,
     csrfToken: req.csrfToken() 
   });
 });
+
+// Apply CSRF protection to authentication and profile routes
+app.use('/api/auth', csrfProtection, authRoutes);
+app.use('/api/profile', csrfProtection, apiLimiter, profileRoutes);
 
 // Import authentication middleware if needed for protected routes
 const { attachUserData, requireAuth } = require('./server/middleware/auth');

@@ -10,6 +10,7 @@ This guide provides detailed instructions for implementing PocketBase authentica
 4. [Testing and Verification](#testing-and-verification)
 5. [Further Resources](#further-resources)
 6. [Troubleshooting](#troubleshooting)
+7. [Upcoming Features](#upcoming-features)
 
 ## Introduction
 
@@ -414,4 +415,39 @@ req.user = {
 };
 ```
 
-The `profile_id` is used to update the user's profile data without needing to fetch the profile first. 
+The `profile_id` is used to update the user's profile data without needing to fetch the profile first.
+
+## Upcoming Features
+
+### Enhancement Preferences Feature (Planned) ⏳
+
+The Enhancement Preferences feature will allow users to customize their image enhancement experience by selecting which beauty/image enhancements they prefer.
+
+#### Key Components
+
+1. **User Profile Integration**: Enhancement preferences will be stored in the user_profiles collection, within the existing preferences JSON field
+   
+2. **Onboarding Flow Integration**: New users will be prompted to set their enhancement preferences during the onboarding process, with the option to skip
+   
+3. **Profile Management**: Users can update their enhancement preferences from the profile edit screen
+   
+4. **Preference Collection**: User enhancement preferences will be collected and stored for future functionality
+
+#### Enhancement Options
+
+The feature will support the following enhancement options:
+
+- Whiter Teeth
+- Paler Skin
+- Bigger Eyes
+- Slimmer Face 
+- Smoother Skin
+- Enhanced Lighting
+- Vibrant Colors
+- Remove Red Eye
+
+**Implementation Status**: Planned for current development cycle
+
+Detailed implementation information can be found in:
+- [Enhancement Preferences Feature Documentation](../temp/active/user_enhancement_preferences_feature.md)
+- [Enhancement Preferences Implementation Guide](../temp/active/enhancement_preferences_implementation_guide.md) 

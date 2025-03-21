@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const pbService = require('../services/pocketbase');
-const { requireAuth, attachUserData } = require('../middleware/auth');
+const { requireAuth, attachUserData, trackLoginAttempt, resetLoginAttempts } = require('../middleware/auth');
 const logger = require('../../logger');
+const sanitizeHtml = require('sanitize-html');
 
 /**
  * @route POST /api/auth/register
@@ -11,10 +12,19 @@ const logger = require('../../logger');
  * @access Public
  */
 router.post('/register', [
-  // Validation middleware
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-  body('username').isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  // Validation middleware with enhanced security
+  body('email')
+    .isEmail().withMessage('Please provide a valid email')
+    .normalizeEmail()
+    .trim(),
+  body('password')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+  body('username')
+    .isLength({ min: 3 }).withMessage('Username must be at least 3 characters')
+    .isAlphanumeric().withMessage('Username can only contain letters and numbers')
+    .trim(),
   body('passwordConfirm').custom((value, { req }) => {
     if (value !== req.body.password) {
       throw new Error('Password confirmation does not match password');
@@ -23,6 +33,19 @@ router.post('/register', [
   })
 ], async (req, res) => {
   try {
+    // Verify CSRF token is present in header
+    if (!req.csrfToken || req.get('X-CSRF-Token') !== req.csrfToken()) {
+      logger.warn('CSRF token validation failed', { 
+        ip: req.ip,
+        path: req.path,
+        method: req.method
+      });
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Invalid or missing CSRF token'
+      });
+    }
+    
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -42,10 +65,10 @@ router.post('/register', [
       username
     });
     
-    // Create default user profile
+    // Create default user profile with sanitized input
     await pbService.createUserProfile({
       user: user.id,
-      display_name: username,
+      display_name: sanitizeHtml(username),
       onboarding_completed: false
     });
     
@@ -60,7 +83,11 @@ router.post('/register', [
       }
     });
   } catch (error) {
-    logger.error('Registration failed', { error: error.message });
+    logger.error('Registration failed', { 
+      error: error.message,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
     
     // Handle specific error cases
     if (error.status === 400) {
@@ -85,10 +112,34 @@ router.post('/register', [
  */
 router.post('/login', [
   // Validation middleware
-  body('identity').notEmpty().withMessage('Email or username is required'),
-  body('password').notEmpty().withMessage('Password is required')
+  body('identity')
+    .notEmpty().withMessage('Email or username is required')
+    .trim(),
+  body('password')
+    .notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   try {
+    // Verify CSRF token is present in header
+    if (!req.csrfToken || req.get('X-CSRF-Token') !== req.csrfToken()) {
+      logger.warn('CSRF token validation failed', { 
+        ip: req.ip,
+        path: req.path,
+        method: req.method
+      });
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Invalid or missing CSRF token'
+      });
+    }
+    
+    // Check for IP-based brute force protection
+    if (trackLoginAttempt(req.ip)) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many failed login attempts. Please try again later.'
+      });
+    }
+    
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -103,9 +154,14 @@ router.post('/login', [
     // Authenticate with PocketBase
     const authData = await pbService.loginUser(identity, password);
     
+    // Reset login attempts on successful login
+    resetLoginAttempts(req.ip);
+    
     // Create session
     req.session.userId = authData.record.id;
     req.session.authenticated = true;
+    req.session.userAgent = req.get('User-Agent');
+    req.session.ipAddress = req.ip;
     
     // Get complete user data with profile
     const userData = await pbService.getCompleteUserData(authData.record.id);
@@ -123,7 +179,11 @@ router.post('/login', [
       }
     });
   } catch (error) {
-    logger.error('Login failed', { error: error.message });
+    logger.error('Login failed', { 
+      error: error.message,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
     
     // Handle specific error cases
     if (error.status === 400) {

@@ -1038,144 +1038,189 @@
                 // Comparison mode for before/after
                 isComparisonModeActive: false,
                 
-                // Initialize app
-                async initApp() {
+                // Security enhancements
+                csrfToken: '',
+                
+                // Initialize the app
+                init() {
                     // Existing initialization code
                     
                     // Check authentication status
-                    await this.checkAuthStatus();
+                    this.checkAuthStatus();
+                    
+                    // Get CSRF token
+                    this.fetchCsrfToken();
+                },
+                
+                // Fetch CSRF token from the server
+                async fetchCsrfToken() {
+                    try {
+                        const response = await fetch('/api/csrf-token', {
+                            method: 'GET',
+                            credentials: 'include'
+                        });
+                        
+                        if (!response.ok) {
+                            console.error('Failed to fetch CSRF token');
+                            return;
+                        }
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.csrfToken = data.csrfToken;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching CSRF token:', error);
+                    }
                 },
                 
                 // Authentication methods
                 async checkAuthStatus() {
                     try {
-                        const response = await fetch('/api/auth/status');
+                        const response = await fetch('/api/auth/status', {
+                            method: 'GET',
+                            credentials: 'include'
+                        });
+                        
+                        if (!response.ok) {
+                            this.isAuthenticated = false;
+                            return;
+                        }
+                        
                         const data = await response.json();
                         
-                        if (data.authenticated) {
-                            this.isAuthenticated = true;
+                        this.isAuthenticated = data.authenticated;
+                        if (data.authenticated && data.user) {
                             this.user = data.user;
+                            this.userProfile.displayName = data.user.displayName || '';
                             
-                            // If the user has not completed onboarding, show onboarding
-                            if (this.user && !this.user.isOnboarded) {
-                                this.showOnboarding = true;
-                                
-                                // Pre-fill the onboarding data with user info if available
-                                if (this.user.displayName) {
-                                    this.onboardingData.displayName = this.user.displayName;
-                                }
+                            // Check if onboarding is needed
+                            if (!data.user.isOnboarded) {
+                                this.showOnboardingModal = true;
                             }
-                            
-                            // Load profile data into profile form
-                            await this.loadProfileForm();
                         }
                     } catch (error) {
-                        console.error('Failed to check authentication status:', error);
+                        console.error('Auth check failed:', error);
+                        this.isAuthenticated = false;
                     }
                 },
                 
                 async login() {
-                    this.authLoading = true;
-                    this.authError = null;
+                    this.authError = '';
                     
                     try {
+                        if (!this.loginForm.identity || !this.loginForm.password) {
+                            this.authError = 'Please fill in all fields';
+                            return;
+                        }
+                        
                         const response = await fetch('/api/auth/login', {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': this.csrfToken
                             },
-                            body: JSON.stringify(this.loginForm),
+                            body: JSON.stringify({
+                                identity: this.loginForm.identity,
+                                password: this.loginForm.password
+                            }),
                             credentials: 'include'
                         });
                         
                         const data = await response.json();
                         
-                        if (data.success) {
-                            this.isAuthenticated = true;
-                            this.user = data.user;
-                            this.showLoginModal = false;
-                            
-                            // Reset form
-                            this.loginForm = {
-                                identity: '',
-                                password: ''
-                            };
-                            
-                            // Check if onboarding is needed
-                            if (!data.user.isOnboarded) {
-                                this.showOnboarding = true;
-                                if (data.user.displayName) {
-                                    this.onboardingData.displayName = data.user.displayName;
-                                }
+                        if (!response.ok) {
+                            this.authError = data.message || 'Login failed';
+                            if (data.errors && data.errors.length > 0) {
+                                this.authError = data.errors.map(err => err.msg || err.message).join(', ');
                             }
-                            
-                            // Load profile data
-                            await this.loadProfileForm();
-                        } else {
-                            this.authError = data.message || 'Login failed. Please check your credentials.';
+                            return;
+                        }
+                        
+                        // Successful login
+                        this.isAuthenticated = true;
+                        this.user = data.user;
+                        this.showLoginModal = false;
+                        this.loginForm.identity = '';
+                        this.loginForm.password = '';
+                        
+                        // Reset CSRF token after login
+                        await this.fetchCsrfToken();
+                        
+                        // Show onboarding if needed
+                        if (data.user && !data.user.isOnboarded) {
+                            this.showOnboardingModal = true;
                         }
                     } catch (error) {
-                        this.authError = 'An error occurred. Please try again.';
                         console.error('Login error:', error);
-                    } finally {
-                        this.authLoading = false;
+                        this.authError = 'An unexpected error occurred. Please try again.';
                     }
                 },
                 
                 async register() {
-                    this.authLoading = true;
-                    this.authError = null;
-                    
-                    // Validate password match
-                    if (this.registerForm.password !== this.registerForm.passwordConfirm) {
-                        this.authError = 'Passwords do not match';
-                        this.authLoading = false;
-                        return;
-                    }
+                    this.authError = '';
                     
                     try {
+                        // Validate inputs
+                        if (!this.registerForm.email || !this.registerForm.username || 
+                            !this.registerForm.password || !this.registerForm.passwordConfirm) {
+                            this.authError = 'Please fill in all fields';
+                            return;
+                        }
+                        
+                        if (this.registerForm.password !== this.registerForm.passwordConfirm) {
+                            this.authError = 'Passwords do not match';
+                            return;
+                        }
+                        
+                        // Password strength validation
+                        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+                        if (!passwordRegex.test(this.registerForm.password)) {
+                            this.authError = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+                            return;
+                        }
+                        
                         const response = await fetch('/api/auth/register', {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': this.csrfToken
                             },
-                            body: JSON.stringify(this.registerForm),
+                            body: JSON.stringify({
+                                email: this.registerForm.email,
+                                username: this.registerForm.username,
+                                password: this.registerForm.password,
+                                passwordConfirm: this.registerForm.passwordConfirm
+                            }),
                             credentials: 'include'
                         });
                         
                         const data = await response.json();
                         
-                        if (data.success) {
-                            // Registration successful, switch to login
-                            this.showRegisterModal = false;
-                            this.showLoginModal = true;
-                            
-                            // Pre-fill login form with registration data
-                            this.loginForm.identity = this.registerForm.email;
-                            this.loginForm.password = this.registerForm.password;
-                            
-                            // Reset register form
-                            this.registerForm = {
-                                email: '',
-                                username: '',
-                                password: '',
-                                passwordConfirm: ''
-                            };
-                            
-                            // Show success message in login form
-                            this.authError = null;
-                        } else {
-                            if (data.errors && Array.isArray(data.errors)) {
+                        if (!response.ok) {
+                            this.authError = data.message || 'Registration failed';
+                            if (data.errors && data.errors.length > 0) {
                                 this.authError = data.errors.map(err => err.msg || err.message).join(', ');
-                            } else {
-                                this.authError = data.message || 'Registration failed. Please try again.';
                             }
+                            return;
                         }
+                        
+                        // Successful registration
+                        this.showRegisterModal = false;
+                        this.showLoginModal = true; // Prompt to login
+                        this.registerForm.email = '';
+                        this.registerForm.username = '';
+                        this.registerForm.password = '';
+                        this.registerForm.passwordConfirm = '';
+                        
+                        // Success message in login modal
+                        this.authSuccess = 'Registration successful! Please login.';
+                        
+                        // Reset CSRF token after registration
+                        await this.fetchCsrfToken();
                     } catch (error) {
-                        this.authError = 'An error occurred. Please try again.';
                         console.error('Registration error:', error);
-                    } finally {
-                        this.authLoading = false;
+                        this.authError = 'An unexpected error occurred. Please try again.';
                     }
                 },
                 
@@ -1183,16 +1228,23 @@
                     try {
                         const response = await fetch('/api/auth/logout', {
                             method: 'POST',
+                            headers: {
+                                'X-CSRF-Token': this.csrfToken
+                            },
                             credentials: 'include'
                         });
                         
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                            this.isAuthenticated = false;
-                            this.user = null;
-                            this.showProfileView = false;
+                        if (!response.ok) {
+                            console.error('Logout failed');
+                            return;
                         }
+                        
+                        // Reset state
+                        this.isAuthenticated = false;
+                        this.user = null;
+                        
+                        // Reset CSRF token after logout
+                        await this.fetchCsrfToken();
                     } catch (error) {
                         console.error('Logout error:', error);
                     }
@@ -1225,37 +1277,49 @@
                 },
                 
                 async updateProfile() {
-                    this.profileLoading = true;
-                    this.profileError = null;
+                    this.profileError = '';
                     
                     try {
+                        if (!this.userProfile.displayName) {
+                            this.profileError = 'Display name is required';
+                            return;
+                        }
+                        
                         const response = await fetch('/api/profile', {
-                            method: 'PUT',
+                            method: 'PATCH',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': this.csrfToken
                             },
-                            body: JSON.stringify(this.profileForm),
+                            body: JSON.stringify({
+                                display_name: this.userProfile.displayName,
+                                bio: this.userProfile.bio,
+                                preferences: this.userProfile.preferences
+                            }),
                             credentials: 'include'
                         });
                         
                         const data = await response.json();
                         
-                        if (data.success) {
-                            // Update user object if needed
-                            if (this.user) {
-                                this.user.displayName = data.profile.displayName;
-                            }
-                            
-                            // Close profile view
-                            this.showProfileView = false;
-                        } else {
-                            this.profileError = data.message || 'Failed to update profile';
+                        if (!response.ok) {
+                            this.profileError = data.message || 'Profile update failed';
+                            return;
                         }
+                        
+                        // Update user data
+                        this.user = {
+                            ...this.user,
+                            displayName: data.profile.display_name
+                        };
+                        
+                        this.showProfileModal = false;
+                        this.profileSuccess = 'Profile updated successfully';
+                        
+                        // Reset CSRF token after profile update
+                        await this.fetchCsrfToken();
                     } catch (error) {
-                        this.profileError = 'An error occurred. Please try again.';
                         console.error('Profile update error:', error);
-                    } finally {
-                        this.profileLoading = false;
+                        this.profileError = 'An unexpected error occurred. Please try again.';
                     }
                 },
                 
@@ -1277,53 +1341,37 @@
                 
                 async completeOnboarding() {
                     try {
-                        const onboardingData = {
-                            completed: true,
-                            preferences: this.onboardingData.preferences,
-                            steps: this.onboardingData.steps
-                        };
-                        
-                        // Update profile with onboarding data
-                        const profileData = {
-                            displayName: this.onboardingData.displayName,
-                            preferences: this.onboardingData.preferences
-                        };
-                        
-                        // Update profile first
-                        await fetch('/api/profile', {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(profileData),
-                            credentials: 'include'
-                        });
-                        
-                        // Mark onboarding as complete
                         const response = await fetch('/api/profile/onboarding', {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': this.csrfToken
                             },
-                            body: JSON.stringify(onboardingData),
+                            body: JSON.stringify({
+                                display_name: this.userProfile.displayName,
+                                preferences: this.userProfile.preferences
+                            }),
                             credentials: 'include'
                         });
                         
                         const data = await response.json();
                         
-                        if (data.success) {
-                            // Update user data
-                            if (this.user) {
-                                this.user.isOnboarded = true;
-                                this.user.displayName = this.onboardingData.displayName;
-                            }
-                            
-                            // Close onboarding
-                            this.showOnboarding = false;
-                            this.onboardingStep = 1;
+                        if (!response.ok) {
+                            console.error('Onboarding completion failed:', data.message);
+                            return;
                         }
+                        
+                        // Update user data
+                        if (this.user) {
+                            this.user.isOnboarded = true;
+                        }
+                        
+                        this.showOnboardingModal = false;
+                        
+                        // Reset CSRF token after onboarding
+                        await this.fetchCsrfToken();
                     } catch (error) {
-                        console.error('Failed to complete onboarding:', error);
+                        console.error('Onboarding error:', error);
                     }
                 },
                 

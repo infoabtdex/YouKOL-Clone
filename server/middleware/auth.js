@@ -1,6 +1,65 @@
 const logger = require('../../logger');
 const pbService = require('../services/pocketbase');
 
+// Security enhancement: Add login attempt tracking
+const loginAttempts = new Map();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Helper function to track failed login attempts by IP
+ * @param {string} ip - The IP address
+ * @returns {boolean} - Whether the IP is locked out
+ */
+function trackLoginAttempt(ip) {
+  const now = Date.now();
+  
+  // Get or initialize attempts for this IP
+  if (!loginAttempts.has(ip)) {
+    loginAttempts.set(ip, {
+      count: 0,
+      firstAttempt: now,
+      lockUntil: 0
+    });
+  }
+  
+  const attempts = loginAttempts.get(ip);
+  
+  // Check if currently locked out
+  if (attempts.lockUntil > now) {
+    return true; // IP is locked out
+  }
+  
+  // Reset counter if it's been over 15 minutes since first attempt
+  if (now - attempts.firstAttempt > LOCKOUT_TIME) {
+    attempts.count = 1;
+    attempts.firstAttempt = now;
+    return false;
+  }
+  
+  // Increment attempt counter
+  attempts.count++;
+  
+  // Lock out IP if too many attempts
+  if (attempts.count >= MAX_FAILED_ATTEMPTS) {
+    attempts.lockUntil = now + LOCKOUT_TIME;
+    logger.warn('IP address locked out due to too many failed attempts', { ip });
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Reset login attempts for an IP address
+ * @param {string} ip - The IP address
+ */
+function resetLoginAttempts(ip) {
+  if (loginAttempts.has(ip)) {
+    loginAttempts.delete(ip);
+  }
+}
+
 /**
  * Middleware to require authentication for protected routes
  * Checks if the user is authenticated via session
@@ -108,5 +167,7 @@ function requireOnboarding(req, res, next) {
 module.exports = {
   requireAuth,
   attachUserData,
-  requireOnboarding
+  requireOnboarding,
+  trackLoginAttempt,
+  resetLoginAttempts
 }; 

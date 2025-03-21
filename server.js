@@ -8,6 +8,11 @@ const fs = require('fs');
 const cookieParser = require('cookie-parser');
 const logger = require('./logger');
 
+// Security enhancements
+const csrf = require('csurf');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+
 // Import the PocketBase service
 const pbService = require('./server/services/pocketbase');
 
@@ -75,6 +80,55 @@ app.use(cookieParser());
 // Configure session middleware
 app.use(configureSession());
 
+// Security enhancements: Apply helmet for HTTP security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdn.tailwindcss.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", 'cdn.jsdelivr.net'],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  },
+  xssFilter: true,
+  noSniff: true,
+  referrerPolicy: { policy: 'same-origin' }
+}));
+
+// CSRF protection middleware
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production'
+  }
+});
+
+// Rate limiting middleware
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 requests per window
+  standardHeaders: true,
+  message: {
+    success: false,
+    message: 'Too many authentication attempts, please try again later.'
+  }
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // 60 requests per minute
+  standardHeaders: true,
+  message: {
+    success: false,
+    message: 'Too many requests, please try again later.'
+  }
+});
+
 // Parse JSON body
 app.use(express.json({ limit: '10mb' }));  // Increased limit for base64 images
 
@@ -121,8 +175,19 @@ const upload = multer({
 app.use(express.static(__dirname));
 
 // Register authentication routes
-app.use('/api/auth', authRoutes);
-app.use('/api/profile', profileRoutes);
+app.use('/api/auth/login', authLimiter); // Apply stricter rate limiting to login
+app.use('/api/auth/register', authLimiter); // Apply stricter rate limiting to registration
+app.use('/api/auth/password-reset', authLimiter); // Apply stricter rate limiting to password reset
+app.use('/api/auth', csrfProtection, authRoutes);
+app.use('/api/profile', csrfProtection, apiLimiter, profileRoutes);
+
+// CSRF token endpoint
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
+  res.json({ 
+    success: true,
+    csrfToken: req.csrfToken() 
+  });
+});
 
 // Import authentication middleware if needed for protected routes
 const { attachUserData, requireAuth } = require('./server/middleware/auth');

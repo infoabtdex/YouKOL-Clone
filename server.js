@@ -16,6 +16,7 @@ const configureSession = require('./server/middleware/session');
 
 // Import routes
 const authRoutes = require('./server/routes/auth');
+const profileRoutes = require('./server/routes/profile');
 
 // Load environment variables
 dotenv.config();
@@ -121,6 +122,7 @@ app.use(express.static(__dirname));
 
 // Register authentication routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Import authentication middleware if needed for protected routes
 const { attachUserData, requireAuth } = require('./server/middleware/auth');

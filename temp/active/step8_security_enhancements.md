@@ -112,7 +112,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdn.tailwindcss.com'],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'cdn.jsdelivr.net', 'cdn.tailwindcss.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
       imgSrc: ["'self'", 'data:'],
       connectSrc: ["'self'"],
@@ -126,6 +126,8 @@ app.use(helmet({
   referrerPolicy: { policy: 'same-origin' }
 }));
 ```
+
+**Note**: While `'unsafe-eval'` is generally not recommended in a Content Security Policy, it's included here because Alpine.js requires it for dynamic evaluation of expressions.
 
 ### 4. Input Validation & Sanitization
 Enhanced validation and sanitization for user inputs.

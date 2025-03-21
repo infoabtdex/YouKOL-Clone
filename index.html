@@ -39,16 +39,64 @@
     <div id="app" x-data="appState()" x-init="await initApp()" class="flex flex-col items-center justify-between min-h-screen p-4 bg-[#F9FAFB] overflow-x-hidden">
         <!-- Header -->
         <div class="w-full flex flex-col items-center justify-center pt-16 pb-8">
-            <div class="flex items-center mb-3">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-[#F19A94] shadow-sm flex items-center justify-center mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+            <div class="flex items-center justify-between w-full max-w-lg">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-[#F19A94] shadow-sm flex items-center justify-center mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <h1 class="logo-text text-2xl">Ima<span>KOL</span></h1>
                 </div>
-                <h1 class="logo-text text-2xl">Ima<span>KOL</span></h1>
+                
+                <!-- Auth buttons / User menu -->
+                <div x-show="!isAuthenticated" class="flex items-center space-x-2">
+                    <button 
+                        @click="showLoginModal = true" 
+                        class="btn btn-sm btn-ghost"
+                    >
+                        Login
+                    </button>
+                    <button 
+                        @click="showRegisterModal = true" 
+                        class="btn btn-sm btn-primary"
+                    >
+                        Sign up
+                    </button>
+                </div>
+                
+                <!-- User menu (when authenticated) -->
+                <div x-show="isAuthenticated" class="relative" x-data="{ userMenuOpen: false }">
+                    <button 
+                        @click="userMenuOpen = !userMenuOpen" 
+                        class="flex items-center space-x-2 focus:outline-none"
+                    >
+                        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+                            <span x-text="user?.displayName?.charAt(0) || user?.username?.charAt(0) || '?'"></span>
+                        </div>
+                        <span x-text="user?.displayName || user?.username" class="hidden sm:inline text-sm font-medium"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    <!-- Dropdown menu -->
+                    <div 
+                        x-show="userMenuOpen" 
+                        @click.away="userMenuOpen = false"
+                        class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10"
+                    >
+                        <a href="#" @click.prevent="showProfileView = true; userMenuOpen = false" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            My Profile
+                        </a>
+                        <a href="#" @click.prevent="logout(); userMenuOpen = false" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            Logout
+                        </a>
+                    </div>
+                </div>
             </div>
-            <p class="text-gray-600 text-center">Capture and share your moments</p>
+            <p class="text-gray-600 text-center mt-3">Capture and share your moments</p>
         </div>
         
         <!-- Main Content -->
@@ -553,6 +601,300 @@
                 </div>
             </div>
         </div>
+
+        <!-- Login Modal -->
+        <div x-show="showLoginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div @click.away="showLoginModal = false" class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Login</h2>
+                    <button @click="showLoginModal = false" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <form @submit.prevent="login()">
+                    <div class="mb-4">
+                        <label for="identity" class="block text-sm font-medium text-gray-700 mb-1">Email or Username</label>
+                        <input 
+                            type="text" 
+                            id="identity" 
+                            x-model="loginForm.identity" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            x-model="loginForm.password" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            required
+                        >
+                    </div>
+                    
+                    <div x-show="authError" class="mb-4 p-2 bg-red-100 text-red-700 rounded-md text-sm" x-text="authError"></div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                        :disabled="authLoading"
+                    >
+                        <span x-show="!authLoading">Login</span>
+                        <span x-show="authLoading">Logging in...</span>
+                    </button>
+                    
+                    <div class="mt-4 text-center text-sm">
+                        <p>Don't have an account? <a @click.prevent="showLoginModal = false; showRegisterModal = true" href="#" class="text-primary hover:underline">Sign up</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Registration Modal -->
+        <div x-show="showRegisterModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div @click.away="showRegisterModal = false" class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Create an Account</h2>
+                    <button @click="showRegisterModal = false" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <form @submit.prevent="register()">
+                    <div class="mb-4">
+                        <label for="reg-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input 
+                            type="email" 
+                            id="reg-email" 
+                            x-model="registerForm.email" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="reg-username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input 
+                            type="text" 
+                            id="reg-username" 
+                            x-model="registerForm.username" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="reg-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input 
+                            type="password" 
+                            id="reg-password" 
+                            x-model="registerForm.password" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="reg-password-confirm" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                        <input 
+                            type="password" 
+                            id="reg-password-confirm" 
+                            x-model="registerForm.passwordConfirm" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            required
+                        >
+                    </div>
+                    
+                    <div x-show="authError" class="mb-4 p-2 bg-red-100 text-red-700 rounded-md text-sm" x-text="authError"></div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                        :disabled="authLoading"
+                    >
+                        <span x-show="!authLoading">Create Account</span>
+                        <span x-show="authLoading">Creating Account...</span>
+                    </button>
+                    
+                    <div class="mt-4 text-center text-sm">
+                        <p>Already have an account? <a @click.prevent="showRegisterModal = false; showLoginModal = true" href="#" class="text-primary hover:underline">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Profile View/Edit -->
+        <div x-show="showProfileView" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div @click.away="showProfileView = false" class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">My Profile</h2>
+                    <button @click="showProfileView = false" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <form @submit.prevent="updateProfile()">
+                    <div class="mb-4">
+                        <label for="display-name" class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                        <input 
+                            type="text" 
+                            id="display-name" 
+                            x-model="profileForm.displayName" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        >
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="bio" class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                        <textarea 
+                            id="bio" 
+                            x-model="profileForm.bio" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            rows="3"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Preferences</label>
+                        <div class="flex items-center mb-2">
+                            <input 
+                                type="checkbox" 
+                                id="dark-mode" 
+                                x-model="profileForm.preferences.darkMode" 
+                                class="mr-2"
+                            >
+                            <label for="dark-mode">Dark Mode</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="notifications" 
+                                x-model="profileForm.preferences.notifications" 
+                                class="mr-2"
+                            >
+                            <label for="notifications">Enable Notifications</label>
+                        </div>
+                    </div>
+                    
+                    <div x-show="profileError" class="mb-4 p-2 bg-red-100 text-red-700 rounded-md text-sm" x-text="profileError"></div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                        :disabled="profileLoading"
+                    >
+                        <span x-show="!profileLoading">Save Changes</span>
+                        <span x-show="profileLoading">Saving...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Onboarding Modal -->
+        <div x-show="showOnboarding" class="fixed inset-0 bg-white z-50 flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold">Welcome to ImaKOL!</h2>
+                <button @click="skipOnboarding()" class="text-gray-500 hover:text-gray-700">
+                    Skip
+                </button>
+            </div>
+            
+            <div class="flex-grow p-6 overflow-y-auto">
+                <!-- Step 1 -->
+                <div x-show="onboardingStep === 1" class="flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-full bg-primary-light flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium mb-2">Welcome aboard!</h3>
+                    <p class="text-center text-gray-600 mb-6">Let's set up your profile so you can make the most of ImaKOL.</p>
+                    
+                    <div class="w-full max-w-md space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Choose a display name</label>
+                            <input 
+                                type="text" 
+                                x-model="onboardingData.displayName" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                                placeholder="Your display name"
+                            >
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 2 -->
+                <div x-show="onboardingStep === 2" class="flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-full bg-primary-light flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium mb-2">Set Your Preferences</h3>
+                    <p class="text-center text-gray-600 mb-6">Customize your experience with ImaKOL.</p>
+                    
+                    <div class="w-full max-w-md space-y-4">
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="onboarding-dark-mode" 
+                                x-model="onboardingData.preferences.darkMode" 
+                                class="mr-2"
+                            >
+                            <label for="onboarding-dark-mode">Enable Dark Mode</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="onboarding-notifications" 
+                                x-model="onboardingData.preferences.notifications" 
+                                class="mr-2"
+                            >
+                            <label for="onboarding-notifications">Enable Notifications</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3 -->
+                <div x-show="onboardingStep === 3" class="flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-full bg-primary-light flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium mb-2">All Set!</h3>
+                    <p class="text-center text-gray-600 mb-6">You're all set up and ready to go. Start capturing and sharing your moments!</p>
+                </div>
+            </div>
+            
+            <div class="border-t p-4 flex justify-between">
+                <button 
+                    @click="previousOnboardingStep()" 
+                    class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    x-show="onboardingStep > 1"
+                >
+                    Previous
+                </button>
+                <div x-show="onboardingStep === 1"></div>
+                
+                <button 
+                    @click="nextOnboardingStep()" 
+                    class="px-4 py-2 bg-primary border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                >
+                    <span x-show="onboardingStep < 3">Next</span>
+                    <span x-show="onboardingStep === 3">Finish</span>
+                </button>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -623,6 +965,51 @@
                 capturedImage: null,
                 generatedCaption: '',
                 
+                // Authentication state
+                isAuthenticated: false,
+                user: null,
+                authError: null,
+                authLoading: false,
+                profileError: null,
+                profileLoading: false,
+                
+                // Auth modals
+                showLoginModal: false,
+                showRegisterModal: false,
+                showProfileView: false,
+                
+                // Form data
+                loginForm: {
+                    identity: '',
+                    password: ''
+                },
+                registerForm: {
+                    email: '',
+                    username: '',
+                    password: '',
+                    passwordConfirm: ''
+                },
+                profileForm: {
+                    displayName: '',
+                    bio: '',
+                    preferences: {
+                        darkMode: false,
+                        notifications: true
+                    }
+                },
+                
+                // Onboarding
+                showOnboarding: false,
+                onboardingStep: 1,
+                onboardingData: {
+                    displayName: '',
+                    preferences: {
+                        darkMode: false,
+                        notifications: true
+                    },
+                    steps: []
+                },
+                
                 // Fullscreen view related state
                 isFullscreenViewOpen: false,
                 currentFullscreenIndex: null,
@@ -651,6 +1038,302 @@
                 // Comparison mode for before/after
                 isComparisonModeActive: false,
                 
+                // Initialize app
+                async initApp() {
+                    // Existing initialization code
+                    
+                    // Check authentication status
+                    await this.checkAuthStatus();
+                },
+                
+                // Authentication methods
+                async checkAuthStatus() {
+                    try {
+                        const response = await fetch('/api/auth/status');
+                        const data = await response.json();
+                        
+                        if (data.authenticated) {
+                            this.isAuthenticated = true;
+                            this.user = data.user;
+                            
+                            // If the user has not completed onboarding, show onboarding
+                            if (this.user && !this.user.isOnboarded) {
+                                this.showOnboarding = true;
+                                
+                                // Pre-fill the onboarding data with user info if available
+                                if (this.user.displayName) {
+                                    this.onboardingData.displayName = this.user.displayName;
+                                }
+                            }
+                            
+                            // Load profile data into profile form
+                            await this.loadProfileForm();
+                        }
+                    } catch (error) {
+                        console.error('Failed to check authentication status:', error);
+                    }
+                },
+                
+                async login() {
+                    this.authLoading = true;
+                    this.authError = null;
+                    
+                    try {
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.loginForm),
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.isAuthenticated = true;
+                            this.user = data.user;
+                            this.showLoginModal = false;
+                            
+                            // Reset form
+                            this.loginForm = {
+                                identity: '',
+                                password: ''
+                            };
+                            
+                            // Check if onboarding is needed
+                            if (!data.user.isOnboarded) {
+                                this.showOnboarding = true;
+                                if (data.user.displayName) {
+                                    this.onboardingData.displayName = data.user.displayName;
+                                }
+                            }
+                            
+                            // Load profile data
+                            await this.loadProfileForm();
+                        } else {
+                            this.authError = data.message || 'Login failed. Please check your credentials.';
+                        }
+                    } catch (error) {
+                        this.authError = 'An error occurred. Please try again.';
+                        console.error('Login error:', error);
+                    } finally {
+                        this.authLoading = false;
+                    }
+                },
+                
+                async register() {
+                    this.authLoading = true;
+                    this.authError = null;
+                    
+                    // Validate password match
+                    if (this.registerForm.password !== this.registerForm.passwordConfirm) {
+                        this.authError = 'Passwords do not match';
+                        this.authLoading = false;
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/auth/register', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.registerForm),
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Registration successful, switch to login
+                            this.showRegisterModal = false;
+                            this.showLoginModal = true;
+                            
+                            // Pre-fill login form with registration data
+                            this.loginForm.identity = this.registerForm.email;
+                            this.loginForm.password = this.registerForm.password;
+                            
+                            // Reset register form
+                            this.registerForm = {
+                                email: '',
+                                username: '',
+                                password: '',
+                                passwordConfirm: ''
+                            };
+                            
+                            // Show success message in login form
+                            this.authError = null;
+                        } else {
+                            if (data.errors && Array.isArray(data.errors)) {
+                                this.authError = data.errors.map(err => err.msg || err.message).join(', ');
+                            } else {
+                                this.authError = data.message || 'Registration failed. Please try again.';
+                            }
+                        }
+                    } catch (error) {
+                        this.authError = 'An error occurred. Please try again.';
+                        console.error('Registration error:', error);
+                    } finally {
+                        this.authLoading = false;
+                    }
+                },
+                
+                async logout() {
+                    try {
+                        const response = await fetch('/api/auth/logout', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.isAuthenticated = false;
+                            this.user = null;
+                            this.showProfileView = false;
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    }
+                },
+                
+                // Profile methods
+                async loadProfileForm() {
+                    if (!this.isAuthenticated) return;
+                    
+                    try {
+                        const response = await fetch('/api/profile', {
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success && data.profile) {
+                            this.profileForm = {
+                                displayName: data.profile.displayName || '',
+                                bio: data.profile.bio || '',
+                                preferences: data.profile.preferences || {
+                                    darkMode: false,
+                                    notifications: true
+                                }
+                            };
+                        }
+                    } catch (error) {
+                        console.error('Failed to load profile:', error);
+                    }
+                },
+                
+                async updateProfile() {
+                    this.profileLoading = true;
+                    this.profileError = null;
+                    
+                    try {
+                        const response = await fetch('/api/profile', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.profileForm),
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Update user object if needed
+                            if (this.user) {
+                                this.user.displayName = data.profile.displayName;
+                            }
+                            
+                            // Close profile view
+                            this.showProfileView = false;
+                        } else {
+                            this.profileError = data.message || 'Failed to update profile';
+                        }
+                    } catch (error) {
+                        this.profileError = 'An error occurred. Please try again.';
+                        console.error('Profile update error:', error);
+                    } finally {
+                        this.profileLoading = false;
+                    }
+                },
+                
+                // Onboarding methods
+                nextOnboardingStep() {
+                    if (this.onboardingStep < 3) {
+                        this.onboardingStep++;
+                        this.onboardingData.steps.push(`step-${this.onboardingStep}`);
+                    } else {
+                        this.completeOnboarding();
+                    }
+                },
+                
+                previousOnboardingStep() {
+                    if (this.onboardingStep > 1) {
+                        this.onboardingStep--;
+                    }
+                },
+                
+                async completeOnboarding() {
+                    try {
+                        const onboardingData = {
+                            completed: true,
+                            preferences: this.onboardingData.preferences,
+                            steps: this.onboardingData.steps
+                        };
+                        
+                        // Update profile with onboarding data
+                        const profileData = {
+                            displayName: this.onboardingData.displayName,
+                            preferences: this.onboardingData.preferences
+                        };
+                        
+                        // Update profile first
+                        await fetch('/api/profile', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(profileData),
+                            credentials: 'include'
+                        });
+                        
+                        // Mark onboarding as complete
+                        const response = await fetch('/api/profile/onboarding', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(onboardingData),
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Update user data
+                            if (this.user) {
+                                this.user.isOnboarded = true;
+                                this.user.displayName = this.onboardingData.displayName;
+                            }
+                            
+                            // Close onboarding
+                            this.showOnboarding = false;
+                            this.onboardingStep = 1;
+                        }
+                    } catch (error) {
+                        console.error('Failed to complete onboarding:', error);
+                    }
+                },
+                
+                skipOnboarding() {
+                    // Mark onboarding as completed without going through all steps
+                    this.onboardingData.steps = ['skipped'];
+                    this.completeOnboarding();
+                },
+                
+                // Existing methods
                 async captureMedia() {
                     try {
                         // Request camera permissions

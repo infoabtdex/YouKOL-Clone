@@ -380,4 +380,38 @@ The PocketBase authentication implementation is now complete with:
 - Secure RESTful API endpoints for authentication
 - Complete user profile management functionality
 - Robust error handling and validation
-- Frontend integration with login, registration, and profile management 
+- Frontend integration with login, registration, and profile management
+
+## Field Naming Conventions
+
+To maintain compatibility across the application, the following field naming conventions are used:
+
+### Profile Fields
+
+| Frontend Property | Backend/Database Field | Description |
+|-------------------|------------------------|-------------|
+| `displayName`     | `display_name`         | User's display name |
+| `bio`             | `bio`                  | User's biography or description |
+| `preferences`     | `preferences`          | User's preferences (stored as JSON) |
+| `isOnboarded`     | `onboarding_completed` | Whether user has completed onboarding |
+
+The application handles both naming conventions for maximum compatibility. When sending data to the server, you can use either format (camelCase for frontend, snake_case for backend). The server will properly translate between them.
+
+When receiving data from the server, both formats are included in the response for convenience (except in specialized endpoints).
+
+### User Object Structure
+
+The user object attached to the request by the `attachUserData` middleware contains:
+
+```javascript
+req.user = {
+  id: "user-uuid",                         // PocketBase user ID
+  email: "user@example.com",               // User's email
+  username: "username",                    // User's username
+  displayName: "Display Name",             // User's display name
+  isOnboarded: true,                       // Whether onboarding is completed
+  profile_id: "profile-uuid"               // PocketBase profile ID
+};
+```
+
+The `profile_id` is used to update the user's profile data without needing to fetch the profile first. 

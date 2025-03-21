@@ -105,7 +105,8 @@ app.use('/api/auth/password-reset', authLimiter);
 ```
 
 ### 3. HTTP Security Headers (Helmet)
-Security headers have been added to protect against various attacks.
+
+Configured HTTP security headers using Helmet middleware:
 
 ```javascript
 app.use(helmet({
@@ -114,8 +115,8 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'cdn.jsdelivr.net', 'cdn.tailwindcss.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
-      imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'blob:'], // Added 'blob:' to support dynamically generated images
+      connectSrc: ["'self'", 'data:', 'blob:'], // Added data and blob URLs for fetch API access
       fontSrc: ["'self'", 'cdn.jsdelivr.net'],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
@@ -126,6 +127,14 @@ app.use(helmet({
   referrerPolicy: { policy: 'same-origin' }
 }));
 ```
+
+This configuration:
+- Limits resources to same origin by default
+- Allows necessary external scripts and styles for UI functionality
+- Permits images from same origin, data URLs, and blob URLs (for dynamically generated content)
+- Prevents MIME type sniffing
+- Implements XSS protection
+- Uses same-origin referrer policy
 
 **Note**: While `'unsafe-eval'` is generally not recommended in a Content Security Policy, it's included here because Alpine.js requires it for dynamic evaluation of expressions.
 
@@ -214,6 +223,60 @@ req.session.authenticated = true;
 req.session.userAgent = req.get('User-Agent');
 req.session.ipAddress = req.ip;
 ```
+
+### 7. Profile Update Fixes
+
+Fixed issues with profile updates by:
+
+1. **Robust Profile ID Handling**: Improved the way profile IDs are accessed:
+   ```javascript
+   // Get profile ID - may be in profile_id or may need to be fetched
+   let profileId;
+   
+   if (req.user.profile_id) {
+     // Use existing profile ID if available
+     profileId = req.user.profile_id;
+   } else if (req.user.profileId) {
+     // Backward compatibility
+     profileId = req.user.profileId;
+   } else {
+     // Get or create profile if needed
+     const profile = await pbService.getOrCreateUserProfile(req.user.id);
+     profileId = profile.id;
+   }
+   ```
+
+2. **Field Name Compatibility**: Added support for both frontend and backend field naming conventions:
+   ```javascript
+   // Handle display name (support both conventions)
+   if (req.body.display_name !== undefined) {
+     updateData.display_name = req.body.display_name;
+   } else if (req.body.displayName !== undefined) {
+     updateData.display_name = req.body.displayName;
+   }
+   ```
+
+3. **Response Format Standardization**: Return both snake_case and camelCase versions of fields for frontend compatibility:
+   ```javascript
+   profile: {
+     id: updatedProfile.id,
+     userId: updatedProfile.user,
+     displayName: updatedProfile.display_name,
+     display_name: updatedProfile.display_name,
+     bio: updatedProfile.bio || '',
+     // ...
+   }
+   ```
+
+4. **Enhanced Error Logging**: Added more detailed logging for troubleshooting profile updates:
+   ```javascript
+   logger.info('Updating profile with data', { 
+     profileId, 
+     updateData: JSON.stringify(updateData)
+   });
+   ```
+
+These changes ensure correct behavior when updating user profiles, regardless of the field naming convention used by the frontend or backend.
 
 ## Testing Procedures
 

@@ -83,6 +83,8 @@ router.get('/', requireAuth, attachUserData, async (req, res) => {
 router.put('/', [
   requireAuth,
   attachUserData,
+  body('display_name').optional().isString().isLength({ min: 2, max: 50 })
+    .withMessage('Display name must be between 2 and 50 characters'),
   body('displayName').optional().isString().isLength({ min: 2, max: 50 })
     .withMessage('Display name must be between 2 and 50 characters'),
   body('bio').optional().isString().isLength({ max: 500 })
@@ -100,35 +102,72 @@ router.put('/', [
       });
     }
     
-    // Get profile ID from user data
-    if (!req.user.profileId) {
-      // Create profile if it doesn't exist
-      const profile = await pbService.getOrCreateUserProfile(req.user.id);
-      req.user.profileId = profile.id;
+    // Ensure user exists and has valid data
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
     }
     
-    // Prepare update data - only include fields that were provided
+    // Get profile ID - may be in profile_id or may need to be fetched
+    let profileId;
+    
+    if (req.user.profile_id) {
+      // Use existing profile ID if available
+      profileId = req.user.profile_id;
+      logger.info('Using existing profile ID', { profileId });
+    } else if (req.user.profileId) {
+      // Backward compatibility
+      profileId = req.user.profileId;
+      logger.info('Using legacy profile ID', { profileId });
+    } else {
+      // Get or create profile if needed
+      logger.info('Profile ID not found, fetching profile', { userId: req.user.id });
+      const profile = await pbService.getOrCreateUserProfile(req.user.id);
+      profileId = profile.id;
+      logger.info('Retrieved profile ID', { profileId });
+    }
+    
+    // Extract profile data with support for both naming conventions
     const updateData = {};
-    if (req.body.displayName !== undefined) updateData.display_name = req.body.displayName;
+    
+    // Handle display name (support both conventions)
+    if (req.body.display_name !== undefined) {
+      updateData.display_name = req.body.display_name;
+    } else if (req.body.displayName !== undefined) {
+      updateData.display_name = req.body.displayName;
+    }
+    
+    // Handle other fields
     if (req.body.bio !== undefined) updateData.bio = req.body.bio;
+    
+    // Handle preferences merging
     if (req.body.preferences !== undefined) {
-      // Merge with existing preferences if any
       try {
         const currentProfile = await pbService.getUserProfile(req.user.id);
         const currentPreferences = currentProfile.preferences || {};
-        updateData.preferences = JSON.stringify({
+        
+        // Ensure JSON compatibility
+        updateData.preferences = {
           ...currentPreferences,
           ...req.body.preferences
-        });
+        };
       } catch (error) {
-        // If profile doesn't exist, just use the new preferences
-        updateData.preferences = JSON.stringify(req.body.preferences);
+        // If profile doesn't exist or error occurs, just use the new preferences
+        updateData.preferences = req.body.preferences;
       }
     }
     
-    // Update profile
-    const updatedProfile = await pbService.updateUserProfile(req.user.profileId, updateData);
+    logger.info('Updating profile with data', { 
+      profileId, 
+      updateData: JSON.stringify(updateData)
+    });
     
+    // Update profile
+    const updatedProfile = await pbService.updateUserProfile(profileId, updateData);
+    
+    // Return updated profile
     res.json({
       success: true,
       message: 'Profile updated successfully',
@@ -136,27 +175,24 @@ router.put('/', [
         id: updatedProfile.id,
         userId: updatedProfile.user,
         displayName: updatedProfile.display_name,
+        display_name: updatedProfile.display_name,
         bio: updatedProfile.bio || '',
         preferences: updatedProfile.preferences || {},
-        onboardingCompleted: updatedProfile.onboarding_completed || false,
-        onboardingData: updatedProfile.onboarding_data || {},
-        createdAt: updatedProfile.created,
-        updatedAt: updatedProfile.updated
+        onboardingCompleted: updatedProfile.onboarding_completed || false
       }
     });
   } catch (error) {
     logger.error('Failed to update user profile', { 
-      userId: req.user.id,
-      profileId: req.user.profileId,
-      error: error.message,
-      data: error.data
+      userId: req.user?.id,
+      profileId: req.user?.profile_id || req.user?.profileId,
+      error: error.message
     });
     
     if (error.status === 400) {
       return res.status(400).json({
         success: false,
         message: 'Invalid profile data',
-        errors: error.data
+        errors: error.data || [{ msg: error.message }]
       });
     }
     
@@ -175,10 +211,14 @@ router.put('/', [
 router.post('/onboarding', [
   requireAuth,
   attachUserData,
+  body('display_name').optional().isString()
+    .withMessage('Display name should be a string'),
+  body('displayName').optional().isString()
+    .withMessage('Display name should be a string'),
   body('preferences').optional().isObject()
     .withMessage('Preferences must be an object'),
-  body('completed').isBoolean()
-    .withMessage('Completed status is required')
+  body('completed').optional().isBoolean()
+    .withMessage('Completed status must be a boolean if provided')
 ], async (req, res) => {
   try {
     // Check for validation errors
@@ -190,11 +230,27 @@ router.post('/onboarding', [
       });
     }
     
-    const { preferences, completed, steps } = req.body;
+    // Log request for debugging
+    logger.info('Onboarding request received', { 
+      userId: req.user.id, 
+      body: JSON.stringify(req.body)
+    });
+    
+    const { preferences, completed = true, steps } = req.body;
+    
+    // Extract display name if provided
+    const displayName = req.body.display_name || req.body.displayName;
+    
+    // Update profile with display name if provided
+    if (displayName) {
+      await pbService.updateUserProfile(req.user.id, {
+        display_name: displayName
+      });
+    }
     
     // Update onboarding status
     const onboardingData = {
-      completed,
+      onboarding_completed: completed,
       preferences: preferences || {},
       steps: steps || []
     };
@@ -203,7 +259,7 @@ router.post('/onboarding', [
     
     res.json({
       success: true,
-      message: 'Onboarding status updated',
+      message: 'Onboarding completed successfully',
       onboarding: {
         completed,
         preferences: preferences || {},

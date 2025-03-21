@@ -87,7 +87,7 @@
                         @click.away="userMenuOpen = false"
                         class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10"
                     >
-                        <a href="#" @click.prevent="showProfileView = true; userMenuOpen = false" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <a href="#" @click.prevent="showProfileView = true; userMenuOpen = false; loadProfileForm()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                             My Profile
                         </a>
                         <a href="#" @click.prevent="logout(); userMenuOpen = false" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -1103,6 +1103,21 @@
                 // Authentication methods
                 async checkAuthStatus() {
                     try {
+                        console.log('Checking auth status...');
+                        
+                        // Always ensure userProfile exists
+                        if (!this.userProfile) {
+                            console.log('Initializing userProfile in checkAuthStatus');
+                            this.userProfile = {
+                                displayName: '',
+                                bio: '',
+                                preferences: {
+                                    darkMode: false,
+                                    enableNotifications: true
+                                }
+                            };
+                        }
+                        
                         const response = await fetch('/api/auth/status', {
                             method: 'GET',
                             headers: this.getRequestHeaders(),
@@ -1110,21 +1125,30 @@
                         });
                         
                         if (!response.ok) {
+                            console.log('Auth status check failed with status:', response.status);
                             this.isAuthenticated = false;
                             return;
                         }
                         
                         const data = await response.json();
+                        console.log('Auth status response:', data);
                         
                         this.isAuthenticated = data.authenticated;
                         if (data.authenticated && data.user) {
                             this.user = data.user;
+                            
+                            // Set userProfile data from user object
                             this.userProfile.displayName = data.user.displayName || '';
+                            
+                            console.log('User authenticated, userProfile updated:', this.userProfile);
                             
                             // Check if onboarding is needed
                             if (!data.user.isOnboarded) {
                                 this.showOnboardingModal = true;
+                                console.log('Onboarding needed, showing modal');
                             }
+                        } else {
+                            console.log('User not authenticated');
                         }
                     } catch (error) {
                         console.error('Auth check failed:', error);
@@ -1318,11 +1342,27 @@
                     }
                 },
                 
+                // Update profile method
                 async updateProfile() {
+                    // Initialize errors
                     this.profileError = '';
                     
+                    // Always ensure profileForm exists
+                    if (!this.profileForm) {
+                        console.log('Initializing profileForm in updateProfile');
+                        this.profileForm = {
+                            displayName: this.user ? (this.user.displayName || '') : '',
+                            bio: '',
+                            preferences: {
+                                darkMode: false,
+                                enableNotifications: true
+                            }
+                        };
+                    }
+                    
                     try {
-                        if (!this.userProfile.displayName) {
+                        // Additional safety check for displayName
+                        if (!this.profileForm.displayName) {
                             this.profileError = 'Display name is required';
                             return;
                         }
@@ -1336,31 +1376,52 @@
                             }
                         }
                         
+                        const payload = {
+                            display_name: this.profileForm.displayName,
+                            bio: this.profileForm.bio || '',
+                            preferences: this.profileForm.preferences || {}
+                        };
+                        
+                        console.log('Updating profile with:', payload);
+                        
                         const response = await fetch('/api/profile', {
-                            method: 'PATCH',
+                            method: 'PUT', // Changed to PUT to match the server route
                             headers: this.getRequestHeaders(),
-                            body: JSON.stringify({
-                                display_name: this.userProfile.displayName,
-                                bio: this.userProfile.bio,
-                                preferences: this.userProfile.preferences
-                            }),
+                            body: JSON.stringify(payload),
                             credentials: 'include'
                         });
                         
-                        const data = await response.json();
-                        
                         if (!response.ok) {
-                            this.profileError = data.message || 'Profile update failed';
+                            console.error('Profile update failed with status:', response.status);
+                            let errorMessage = 'Profile update failed';
+                            
+                            try {
+                                const errorData = await response.json();
+                                errorMessage = errorData.message || errorMessage;
+                            } catch (jsonError) {
+                                console.error('Failed to parse error response:', jsonError);
+                            }
+                            
+                            this.profileError = errorMessage;
                             return;
                         }
                         
+                        const data = await response.json();
+                        console.log('Profile updated successfully:', data);
+                        
                         // Update user data
-                        this.user = {
-                            ...this.user,
-                            displayName: data.profile.display_name
+                        if (this.user) {
+                            this.user.displayName = data.profile.display_name || data.profile.displayName;
+                        }
+                        
+                        // Update userProfile with the latest data
+                        this.userProfile = {
+                            displayName: data.profile.display_name || data.profile.displayName,
+                            bio: data.profile.bio || '',
+                            preferences: data.profile.preferences || {}
                         };
                         
-                        this.showProfileModal = false;
+                        this.showProfileView = false; // Close the profile modal
                         this.profileSuccess = 'Profile updated successfully';
                         
                         // Reset CSRF token after profile update
@@ -1387,20 +1448,41 @@
                     }
                 },
                 
+                // Complete onboarding
                 async completeOnboarding() {
                     try {
+                        console.log('Starting onboarding completion');
+                        
+                        // Always ensure userProfile exists
+                        if (!this.userProfile) {
+                            console.log('Initializing userProfile in completeOnboarding');
+                            this.userProfile = {
+                                displayName: this.user ? (this.user.displayName || this.user.username || '') : '',
+                                bio: '',
+                                preferences: {
+                                    darkMode: false,
+                                    enableNotifications: true
+                                }
+                            };
+                        }
+                        
                         // Make sure we have a CSRF token
                         if (!this.csrfToken) {
                             await this.fetchCsrfToken();
                         }
                         
+                        const payload = {
+                            display_name: this.userProfile.displayName || (this.user ? this.user.displayName || this.user.username || '' : ''),
+                            preferences: this.userProfile.preferences || {},
+                            completed: true
+                        };
+                        
+                        console.log('Completing onboarding with payload:', payload);
+                        
                         const response = await fetch('/api/profile/onboarding', {
                             method: 'POST',
                             headers: this.getRequestHeaders(),
-                            body: JSON.stringify({
-                                display_name: this.userProfile.displayName,
-                                preferences: this.userProfile.preferences
-                            }),
+                            body: JSON.stringify(payload),
                             credentials: 'include'
                         });
                         
@@ -1410,6 +1492,8 @@
                             console.error('Onboarding completion failed:', data.message);
                             return;
                         }
+                        
+                        console.log('Onboarding completed successfully');
                         
                         // Update user data
                         if (this.user) {

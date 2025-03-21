@@ -87,8 +87,8 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'cdn.jsdelivr.net', 'cdn.tailwindcss.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
-      imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'", 'data:', 'blob:'],
       fontSrc: ["'self'", 'cdn.jsdelivr.net'],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
@@ -196,14 +196,6 @@ const { attachUserData, requireAuth } = require('./server/middleware/auth');
 
 // Attach user data to request if authenticated
 app.use(attachUserData);
-
-// Example of a protected route
-app.get('/api/profile', requireAuth, (req, res) => {
-  res.json({
-    success: true,
-    user: req.user
-  });
-});
 
 // Serve index.html at the root route
 app.get('/', (req, res) => {
